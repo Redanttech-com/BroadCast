@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "BroadCast",
+    "slug": "BroadCast",
+    "scheme": "broadcast",
+    "version": "2.1.6",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./src/assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.ant_apps.BroadCast"
+    },
+    "web": {
+      "favicon": "./src/assets/icon.png"
+    },
+    "plugins": [
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "14139678-ee6b-4e6e-a612-df4f895c9061"
+      }
+    }
+  }
+}
