@@ -128,7 +128,7 @@ export default function InputScreen() {
                 source={{ uri: media.uri }}
                 style={styles.media}
                 useNativeControls
-                shouldPlay={true}
+                shouldPlay
                 resizeMode={ResizeMode.COVER}
               />
             ) : (

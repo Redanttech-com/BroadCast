@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   TextInput,
+  Image,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -42,7 +43,8 @@ export default function CommentScreen() {
   const [media, setMedia] = useState({ uri: null, type: null });
   const { currentLevel, userDetails } = useLevel();
   const flashListRef = useRef(null);
-  const {user} = useUser(); // Assuming you have a user context or hook
+  const { user } = useUser(); // Assuming you have a user context or hook
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (!postId) return; // Ensure postId is available
@@ -101,7 +103,7 @@ export default function CommentScreen() {
     }
   };
 
- const uploadMedia = async (docRefId, collectionName = "comments") => {
+  const uploadMedia = async (docRefId, collectionName = "comments") => {
     if (!media?.uri || !media?.type) {
       console.error("No media URI or type found", media); // Debugging log
       return null; // Prevent upload if no media is selected
@@ -184,13 +186,11 @@ export default function CommentScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0} // tweak this!
-    >
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0} // tweak this!
       >
         <FlashList
           data={comments}
@@ -221,6 +221,33 @@ export default function CommentScreen() {
           }
           renderItem={({ item }) => <RenderComment item={item} id={item.id} />}
         />
+
+        {selectedImage && (
+          <View
+            style={{
+              padding: 10,
+              borderTopWidth: 1,
+              borderColor: "#ccc",
+              backgroundColor: theme.colors.background,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Image
+              source={{ uri: selectedImage }}
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: 10,
+                marginBottom: 5,
+              }}
+              resizeMode="cover"
+            />
+            <TouchableOpacity onPress={() => setSelectedImage(null)}>
+              <Text style={{ color: "red", fontSize: 12 }}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Comment Input */}
         <View
@@ -267,7 +294,7 @@ export default function CommentScreen() {
             )}
           </Pressable>
         </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

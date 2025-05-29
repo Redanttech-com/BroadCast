@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/clerk-expo";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../services/firebase";
 
@@ -12,34 +12,43 @@ export const LevelProvider = ({ children }) => {
     value: "home",
   });
   const { user } = useUser();
-  const [loading, setLoading] = useState(true);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(true);
+
+
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!user?.id) return;
-      setLoading(true);
-      try {
-        const q = query(
-          collection(db, "userPosts"),
-          where("uid", "==", user.id)
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          setUserDetails(querySnapshot.docs[0].data());
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!user?.id) {
+      setLoadingUser(true);
+      setLoadingUserDetails(true);
+      return;
+    }
 
-    fetchUserDetails();
+    const userRef = doc(db, "users", user.id);
+
+    const unsubscribe = onSnapshot(
+      userRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setUserDetails(docSnap.data());
+        }
+        setLoadingUserDetails(false);
+      },
+      (error) => {
+        console.error("Error fetching user data:", error);
+        setLoadingUserDetails(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, [user?.id]);
+  
+  
+
 
   return (
     <LevelContext.Provider
-      value={{ userDetails, setUserDetails, currentLevel, setCurrentLevel, loading, setLoading }}
+      value={{ userDetails, setUserDetails, currentLevel, setCurrentLevel, loadingUser, setLoadingUser }}
     >
       {children}
     </LevelContext.Provider>

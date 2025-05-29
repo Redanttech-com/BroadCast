@@ -23,23 +23,21 @@ import {
   onSnapshot,
   setDoc,
 } from "firebase/firestore";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { formatMoment } from "../utils/formartMoment";
 import { formatCount } from "../utils/format";
 
-export default function RenderPostItem({ item, id }) {
-  const [imageLoading, setImageLoading] = useState(false);
-  const [videoLoading, setVideoLoading] = useState(false);
+export default function RenderPostItem({ item, id}) {
   const { theme } = useTheme();
   const { user } = useUser();
   const { currentLevel } = useLevel();
   const navigation = useNavigation();
-
-  const [muted, setMuted] = useState(false);
   const [mutedMap, setMutedMap] = useState({});
   const [likes, setLikes] = useState([]);
   const [hasLiked, setHasLiked] = useState(false);
   const [comments, setComments] = useState([]);
+  const [muted, setMuted] = useState(true);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     if (!id) return;
@@ -81,12 +79,28 @@ export default function RenderPostItem({ item, id }) {
     }
   }
 
-  const toggleMute = (id) => {
-    setMutedMap((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+  useEffect(() => {
+    if (item?.type === "video") {
+      setMuted(!isFocused);
+    }
+  }, [isFocused, item?.type]);
+
+  const toggleMute = () => {
+    setMuted((prev) => !prev);
   };
+
+  // const videoRef = useRef(null);
+
+  // useEffect(() => {
+  //   if (videoRef.current) {
+  //     if (isVisible) {
+  //       videoRef.current.playAsync();
+  //     } else {
+  //       videoRef.current.pauseAsync();
+  //       videoRef.current.setIsMutedAsync(true); // Optional mute
+  //     }
+  //   }
+  // }, [isVisible]);
 
   const handleShare = async (text) => {
     try {
@@ -179,26 +193,27 @@ export default function RenderPostItem({ item, id }) {
                   height: 40,
                   width: 40,
                   borderRadius: 10,
-                  borderColor: theme.colors.primary,
                 }}
                 resizeMode="cover"
               />
             )}
-            <View>
+            <View style={{ flex: 1 }}>
               <Text
                 style={{
                   color: theme.colors.text,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: "bold",
                 }}
+                numberOfLines={1}
               >
                 {item.name}
               </Text>
               <Text
                 style={{
-                  color: theme.colors.text,
-                  fontSize: 1,
+                  color: theme.colors.text + "99", // Slightly lighter
+                  fontSize: 12,
                 }}
+                numberOfLines={1}
               >
                 @{item.nickname}
               </Text>
@@ -268,8 +283,6 @@ export default function RenderPostItem({ item, id }) {
                 borderRadius: 8,
               }}
               resizeMode="cover"
-              onLoadStart={() => setImageLoading(true)}
-              onLoadEnd={() => setImageLoading(false)}
             />
           </View>
         )}
@@ -277,36 +290,33 @@ export default function RenderPostItem({ item, id }) {
         {item.videos && (
           <View style={{ position: "relative" }}>
             <Video
+              // ref={videoRef}
               source={{ uri: item.videos }}
               resizeMode="cover"
+              isMuted={muted}
               style={{
                 width: "100%",
                 height: 400,
                 borderRadius: 8,
               }}
-              isLooping
-              isMuted={mutedMap[item.id] ?? muted}
-              useNativeControls
-              onLoadStart={() => setVideoLoading(true)}
-              onLoad={() => setVideoLoading(false)}
+              isLooping={true}
+              shouldPlay={isFocused}
             />
             <TouchableOpacity
-              onPress={() => toggleMute(item.id)}
+              onPress={toggleMute}
               style={{
                 position: "absolute",
-                top: 40,
+                top: 20,
                 right: 10,
-                backgroundColor: theme.colors.background,
+                backgroundColor: theme.colors.background + 99,
                 padding: 5,
                 borderRadius: 50,
                 zIndex: 20,
               }}
             >
               <Ionicons
-                name={
-                  mutedMap[item.id] ?? muted ? "volume-mute" : "volume-high"
-                }
-                size={24}
+                name={muted ? "volume-mute" : "volume-high"}
+                size={18}
                 color={theme.colors.text}
               />
             </TouchableOpacity>
@@ -340,7 +350,6 @@ export default function RenderPostItem({ item, id }) {
           onPress={() => {
             navigation.navigate("CommentScreen", {
               postId: item.id,
-
             });
           }}
           style={{

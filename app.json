@@ -3,13 +3,13 @@
     "name": "BroadCast",
     "slug": "BroadCast",
     "scheme": "broadcast",
-    "version": "2.1.6",
+    "version": "2.1.7",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/icon.jpg",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./src/assets/icon.png",
+      "image": "./src/assets/icon.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,14 +18,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/icon.png",
+        "foregroundImage": "./src/assets/icon.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ant_apps.BroadCast"
     },
     "web": {
-      "favicon": "./src/assets/icon.png"
+      "favicon": "./src/assets/icon.jpg"
     },
     "plugins": [
       "expo-web-browser",

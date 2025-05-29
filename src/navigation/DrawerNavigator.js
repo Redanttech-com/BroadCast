@@ -8,7 +8,14 @@ import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { Feather, FontAwesome, Fontisto, Ionicons } from "@expo/vector-icons";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-expo";
 import { Avatar } from "react-native-paper";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../services/firebase";
 import TabNavigator from "./TabNavigator";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -98,29 +105,31 @@ export const drawerScreens = [
 const Drawer = createDrawerNavigator();
 
 function CustomDrawerContent(props) {
-  const [userData, setUserData] = useState(null);
   const { user } = useUser();
   const { signOut } = useAuth();
   const { theme } = useTheme();
+  const [userDetails, setUserDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user?.id) return;
-      try {
-        const q = query(
-          collection(db, "userPosts"),
-          where("uid", "==", user.id)
-        );
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          setUserData(snapshot.docs[0].data());
+    useEffect(() => {
+      const fetchUserDetails = async () => {
+        if (!user?.id) return;
+        setLoading(true);
+        try {
+          const docRef = doc(db, "users", user.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserDetails({ ...docSnap.data(), uid: user.id });
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
-      }
-    };
-    fetchUserData();
-  }, [user?.id]);
+      };
+  
+      fetchUserDetails();
+    }, [user?.id]);
 
   return (
     <DrawerContentScrollView
@@ -144,8 +153,8 @@ function CustomDrawerContent(props) {
             size={40}
             source={{
               uri:
-                userData?.imageUrl ||
-                userData?.userImg ||
+                userDetails?.imageUrl ||
+                userDetails?.userImg ||
                 "https://via.placeholder.com/150",
             }}
             style={{ borderRadius: 20 }}
@@ -161,7 +170,7 @@ function CustomDrawerContent(props) {
               }}
               numberOfLines={1}
             >
-              {userData?.name || "Anonymous"}
+              {userDetails?.name || "Anonymous"}
             </Text>
             <Text
               style={{
@@ -173,7 +182,7 @@ function CustomDrawerContent(props) {
               }}
               numberOfLines={1}
             >
-              @{userData?.nickname || "guest"}
+              @{userDetails?.nickname || "guest"}
             </Text>
           </View>
         </Pressable>

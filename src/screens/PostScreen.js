@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -33,8 +33,6 @@ const PostScreen = React.memo(({ level }) => {
   const { theme } = useTheme();
   const [posts, setPosts] = useState([]);
   const navigation = useNavigation();
-  const [mutedMap, setMutedMap] = useState({});
-  const route = useRoute();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { currentLevel } = useLevel();
@@ -70,16 +68,20 @@ const PostScreen = React.memo(({ level }) => {
     };
   }, [currentLevel]);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    const currentlyVisible = new Set(viewableItems.map((item) => item.item.id));
-    setMutedMap((prev) => {
-      const updated = {};
-      Object.keys(prev).forEach((key) => {
-        updated[key] = !currentlyVisible.has(key);
-      });
-      return updated;
-    });
-  }).current;
+  const [visibleVideoId, setVisibleVideoId] = useState(null);
+
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 80, // Adjust as needed
+  };
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    const firstVisible = viewableItems.find((item) => item.item.videos);
+    setVisibleVideoId(firstVisible?.item.id ?? null);
+  }, []);
+
+  const viewabilityConfigCallbackPairs = useRef([
+    { viewabilityConfig, onViewableItemsChanged },
+  ]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["left", "right"]}>
@@ -98,7 +100,9 @@ const PostScreen = React.memo(({ level }) => {
             keyboardShouldPersistTaps="handled"
             extraData={theme}
             nestedScrollEnabled
-            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfigCallbackPairs={
+              viewabilityConfigCallbackPairs.current
+            }
             removeClippedSubviews={true}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -110,6 +114,7 @@ const PostScreen = React.memo(({ level }) => {
                 item={item}
                 id={item.id}
                 navigation={navigation}
+                // isVisible={item.id === visibleVideoId}
               />
             )}
           />

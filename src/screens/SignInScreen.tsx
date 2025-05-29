@@ -17,6 +17,7 @@ import {
 import { useSignUp } from "@clerk/clerk-expo";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 
 export const useWarmUpBrowser = () => {
   useEffect(() => {
@@ -168,8 +169,10 @@ export default function Page() {
     animateCircle(scale3, 400);
   }, []);
 
+  const { theme } = useTheme();
+
   return (
-    <SafeAreaView className="flex-1 p-2">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={styles.container}>
         <View className="w-full justify-center mt-16 flex-row items-center relative">
           <Animated.View
@@ -185,12 +188,21 @@ export default function Page() {
             className="border-red-600 h-28 w-28 rounded-full border absolute"
           />
           <View>
-            <Text className="text-base">KENYA</Text>
+            <Text style={{ color: theme.colors.text }}>KENYA</Text>
           </View>
         </View>
 
-        <View className="flex-row items-center mt-20 w-full">
-          <Text className="font-bold text-2xl text-center">Sign Up to Broadcast</Text>
+        <View className="flex-row items-center mt-20 w-full justify-center">
+          <Text
+            style={{
+              color: theme.colors.text,
+              textAlign: "center",
+              fontSize: 20,
+              fontWeight: "bold",
+            }}
+          >
+            Sign Up to Broadcast
+          </Text>
           <Image
             source={require("../assets/brLogo.jpg")}
             className="h-10 w-10 rounded-full ml-3"
@@ -306,4 +318,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

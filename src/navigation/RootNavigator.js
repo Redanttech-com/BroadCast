@@ -26,22 +26,22 @@ import CommentScreen from "../screens/CommentScreens/CommentScreen";
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
-  const { currentLevel, userDetails, loading, setLoading } = useLevel();
+  const { currentLevel, userDetails, loadingUser, setLoadingUser } = useLevel();
   const { theme } = useTheme();
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
+      setLoadingUser(false);
     }, 3000); // loader will be visible for 3 seconds
 
     return () => clearTimeout(timer);
   }, []);
 
   // Add this: wait for loading OR userDetails state to resolve before rendering
-  if (loading || userDetails === undefined) {
+  if (loadingUser || userDetails === undefined) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <ActivityIndicator size="small" color={theme.colors.text} />
       </View>
     );
   }

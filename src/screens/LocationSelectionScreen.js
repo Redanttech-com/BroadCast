@@ -23,8 +23,13 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
+  getDocs,
+  query,
   serverTimestamp,
+  setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Toast from "react-native-toast-message";
@@ -32,7 +37,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLevel } from "../context/LevelContext";
 import * as SplashScreen from "expo-splash-screen"; // Import splash screen
 import { resetToDrawer } from "../navigation/TabNavigator";
-
+import { useTheme } from "../context/ThemeContext";
 
 export default function LocationSelectionScreen() {
   useEffect(() => {
@@ -54,6 +59,8 @@ export default function LocationSelectionScreen() {
   const [selectedConstituency, setSelectedConstituency] = useState(null);
   const [selectedWard, setSelectedWard] = useState(null);
   const [selectedData, setSelectedData] = useState(null);
+  const { theme } = useTheme();
+
   const [data, setData] = useState([
     { label: "Personal Account", value: "Personal Account" },
     { label: "Business Account", value: "Business Account" },
@@ -78,11 +85,10 @@ export default function LocationSelectionScreen() {
   ]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
-  const [lname, setlName] = useState("");
+  const [lname, setlName] = useState(userDetails?.lastname || "");  
   const [nName, setnName] = useState("");
-  const [error, setError] = useState("");
   const { user } = useUser();
-  const { userDetails, setUserDetails } = useLevel();
+  const [userDetails, setUserDetails] = useState(null);
 
   const navigation = useNavigation();
 
@@ -98,6 +104,7 @@ export default function LocationSelectionScreen() {
       setImage(result.assets[0].uri);
     }
   };
+
 
   // Populate counties dropdown
   useEffect(() => {
@@ -180,6 +187,49 @@ export default function LocationSelectionScreen() {
     </View>
   );
 
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!user?.id) return;
+
+      setLoading(true);
+      try {
+        // Try from "users" collection
+        const docRef = doc(db, "users", user.id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserDetails({ ...data, uid: user.id });
+
+          if (data?.uid === user.id) resetToDrawer();
+        } else if (user?.primaryEmailAddress?.emailAddress) {
+          // Try from "userPosts" collection
+          const q = query(
+            collection(db, "users"),
+            where("email", "==", user.primaryEmailAddress.emailAddress)
+          );
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data();
+            setUserDetails({ ...userData, uid: user.id });
+
+            if (userData?.uid === user.id) resetToDrawer();
+          } else {
+            setUserDetails(null);
+          //  resetToDrawer(); // fallback nav
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserDetails();
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress]);
+  
+
   const submit = async () => {
     if (loading) return;
     setLoading(true);
@@ -196,34 +246,48 @@ export default function LocationSelectionScreen() {
       return;
     }
 
-    const userInfo = {
-      name: name.trim(),
-      lastname: lname.trim(),
-      nickname: nName.trim(),
-      imageUrl: user.imageUrl || "",
-      category: selectedData || "Unknown",
-      county: selectedCounty || "Unknown",
-      constituency: selectedConstituency || "Unknown",
-      ward: selectedWard || "Unknown",
-      email: user?.primaryEmailAddress?.emailAddress || "",
-      uid: user.id,
-      timestamp: serverTimestamp(),
-    };
+    const userDocRef = doc(db, "users", user.id);
 
     try {
-      const userDocRef = await addDoc(collection(db, "userPosts"), userInfo);
+      const userSnap = await getDoc(userDocRef);
 
-      // If an image was picked, upload it
+      // If user profile already exists, redirect immediately
+      if (userSnap.exists()) {
+        Toast.show({
+          type: "info",
+          text1: "Profile already exists. Redirecting...",
+        });
+        resetToDrawer();
+        return;
+      }
+
+      const userInfo = {
+        name: name.trim(),
+        lastname: lname.trim(),
+        nickname: nName.trim(),
+        imageUrl: user.imageUrl || "",
+        category: selectedData || "Unknown",
+        county: selectedCounty || "Unknown",
+        constituency: selectedConstituency || "Unknown",
+        ward: selectedWard || "Unknown",
+        email: user?.primaryEmailAddress?.emailAddress || "",
+        timestamp: serverTimestamp(),
+      };
+
+      await setDoc(userDocRef, userInfo);
+
       if (image) {
         const response = await fetch(image);
         const blob = await response.blob();
-        const imageRef = ref(storage, `userPosts/${userDocRef.id}/profile.jpg`);
+        const imageRef = ref(storage, `users/${user.id}/profile.jpg`);
         await uploadBytes(imageRef, blob);
         const downloadURL = await getDownloadURL(imageRef);
 
         await updateDoc(userDocRef, {
           profileImage: downloadURL,
         });
+
+        userInfo.profileImage = downloadURL;
       }
 
       Toast.show({
@@ -231,37 +295,34 @@ export default function LocationSelectionScreen() {
         text1: "Profile saved successfully!",
       });
 
-      // Update userDetails context to trigger RootNavigator to switch screens
-      setUserDetails(userInfo);
-
-      // Optionally navigate immediately (if you have navigation available here)
       resetToDrawer();
-      
-      // Optionally navigate to another screen or reset form here
     } catch (err) {
-       console.error("Error saving profile:", err);
+      console.error("Error saving profile:", err);
       Toast.show({ type: "error", text1: "Something went wrong." });
     } finally {
       setLoading(false);
     }
   };
-
-
+  
+     
 
   return (
-    <SafeAreaView className="flex-1 p-5 justify-center">
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.colors.background, padding: 4 }}
+    >
       <View className="h-32">
         <TypeWriter
           typing={1}
           className="m-5 text-2xl font-bold  text-center"
           numberOfLines={2}
+          style={{ color: theme.colors.text }}
         >
           Welcome to BroadCast, In pursuit of a perfect nation.
         </TypeWriter>
       </View>
 
       <ScrollView className="flex-1 pb-5">
-        <View className="flex-row items-center bg-white rounded-full border border-gray-300 px-4 py-2 mb-3">
+        <View className="flex-row items-center rounded-full border border-gray-300 px-4 py-2 mb-3">
           <MaterialIcons
             name="person"
             size={24}
@@ -272,14 +333,14 @@ export default function LocationSelectionScreen() {
             value={name}
             onChangeText={setName}
             placeholder={(userDetails && userDetails?.name) || "Enter name"}
-            placeholderTextColor={"gray"} // Light gray for light mode, white for dark mode
+            placeholderTextColor={theme.colors.text} // Light gray for light mode, white for dark mode
             className="flex-1 text-base"
+            style={{ color: theme.colors.text }}
           />
         </View>
-        {error && <Text className="text-red-500 mb-3">{error}</Text>}
 
         {/* Last Name Input */}
-        <View className="flex-row items-center bg-white rounded-full border border-gray-300 px-4 py-2 mb-3">
+        <View className="flex-row items-center  rounded-full border border-gray-300 px-4 py-2 mb-3">
           <MaterialIcons
             name="person-outline"
             size={24}
@@ -292,14 +353,14 @@ export default function LocationSelectionScreen() {
             placeholder={
               (userDetails && userDetails?.lastname) || "Enter lastname"
             }
-            placeholderTextColor={"gray"} // Light gray for light mode, white for dark mode
+            placeholderTextColor={theme.colors.text} // Light gray for light mode, white for dark mode
             className="flex-1 text-base"
+            style={{ color: theme.colors.text }}
           />
         </View>
-        {error && <Text className="text-red-500 mb-3">{error}</Text>}
 
         {/* Nick Name Input */}
-        <View className="flex-row items-center bg-white rounded-full border border-gray-300 px-4 py-2 mb-3">
+        <View className="flex-row items-center  rounded-full border border-gray-300 px-4 py-2 mb-3">
           <MaterialIcons
             name="person-pin"
             size={24}
@@ -312,11 +373,11 @@ export default function LocationSelectionScreen() {
             placeholder={
               (userDetails && userDetails?.nickname) || "Enter nickname"
             }
-            placeholderTextColor={"gray"} // Light gray for light mode, white for dark mode
+            placeholderTextColor={theme.colors.text} // Light gray for light mode, white for dark mode
             className="flex-1 text-base"
+            style={{ color: theme.colors.text }}
           />
         </View>
-        {error && <Text className="text-red-500 mb-3">{error}</Text>}
         <View className="items-center">
           <Pressable
             onPress={handlePickImage}
@@ -329,7 +390,15 @@ export default function LocationSelectionScreen() {
         </View>
         <View>
           <Dropdown
-            style={styles.dropdown}
+            style={{
+              margin: 8,
+              height: 50,
+              backgroundColor: "white",
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              borderColor: "#ddd",
+              borderWidth: 1,
+            }}
             data={data}
             labelField="label"
             valueField="value"
@@ -343,7 +412,15 @@ export default function LocationSelectionScreen() {
         </View>
         <View>
           <Dropdown
-            style={styles.dropdown}
+            style={{
+              margin: 8,
+              height: 50,
+              backgroundColor: "white",
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              borderColor: "#ddd",
+              borderWidth: 1,
+            }}
             data={counties}
             labelField="label"
             valueField="value"
@@ -357,7 +434,15 @@ export default function LocationSelectionScreen() {
         </View>
         <View>
           <Dropdown
-            style={styles.dropdown}
+            style={{
+              margin: 8,
+              height: 50,
+              backgroundColor: "white",
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              borderColor: "#ddd",
+              borderWidth: 1,
+            }}
             data={constituencies}
             labelField="label"
             valueField="value"
@@ -372,7 +457,15 @@ export default function LocationSelectionScreen() {
         </View>
         <View>
           <Dropdown
-            style={styles.dropdown}
+            style={{
+              margin: 8,
+              height: 50,
+              backgroundColor: "white",
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              borderColor: "#ddd",
+              borderWidth: 1,
+            }}
             data={wards}
             labelField="label"
             valueField="value"
@@ -440,15 +533,6 @@ export default function LocationSelectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  dropdown: {
-    margin: 8,
-    height: 50,
-    backgroundColor: "white",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    borderColor: "#ddd",
-    borderWidth: 1,
-  },
   errorText: {
     color: "red",
     marginBottom: 10,

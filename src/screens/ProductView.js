@@ -2,15 +2,18 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 
 export default function ProductView() {
   const route = useRoute();
   const navigation = useNavigation();
   const { product } = route.params;
-  
+  const { theme } = useTheme();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff", padding: 4 }}>
+    <View
+      style={{ flex: 1, backgroundColor: theme.colors.background, padding: 4 }}
+    >
       {/* Header with X icon */}
       <View
         style={{
@@ -23,9 +26,16 @@ export default function ProductView() {
         }}
       >
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#000" />
+          <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ marginLeft: 12, fontSize: 18, fontWeight: "600" }}>
+        <Text
+          style={{
+            marginLeft: 12,
+            fontSize: 18,
+            fontWeight: "600",
+            color: theme.colors.text,
+          }}
+        >
           {product.productname}
         </Text>
         <TouchableOpacity
@@ -40,7 +50,7 @@ export default function ProductView() {
           <Feather
             name="more-vertical"
             size={24}
-            color="gray"
+            color={theme.colors.text}
             style={{
               padding: 4,
               borderRadius: 50,
@@ -54,7 +64,7 @@ export default function ProductView() {
         style={{ width: "100%", height: "50%", borderRadius: 10 }}
       />
       <View className="gap-2 flex-col justify-between ">
-        <Text style={{ fontWeight: "bold" }}>
+        <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
           {product.name}
           {"  "}@{product.nickname}
         </Text>
@@ -74,13 +84,13 @@ export default function ProductView() {
             fontSize: 14,
             textAlign: "start",
             lineHeight: 18,
-            marginBottom: 10
+            marginBottom: 10,
+            color: theme.colors.text,
           }}
         >
-          {product.description} 
+          {product.description}
         </Text>
       </ScrollView>
     </View>
   );
 }
-

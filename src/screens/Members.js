@@ -82,7 +82,7 @@ export default function MembersListScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="small" color={theme.colors.text} />
       </View>
     );

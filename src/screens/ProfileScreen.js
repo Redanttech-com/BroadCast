@@ -17,7 +17,7 @@ export default function ProfileScreen() {
     const fetchUserData = async () => {
       if (!user?.id) return;
       try {
-        const q = query(collection(db, "userPosts"), where("uid", "==",user?.id));
+        const q = query(collection(db, "users"), where("uid", "==",user?.id));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           setUserData(snapshot.docs[0].data());
@@ -55,7 +55,14 @@ export default function ProfileScreen() {
             <Pressable
               className="p-2 rounded-md"
               style={{ borderWidth: 1, borderColor: theme.colors.text }}
-              onPress={() => navigation.navigate("LocationSelectionScreen")}
+              onPress={() =>
+                navigation.navigate("LocationSelectionScreen", {
+                  selectedCounty: user?.location?.county || null,
+                  selectedConstituency: user?.location?.constituency || null,
+                  selectedWard: user?.location?.ward || null,
+                  fromProfileEdit: true, // optional flag to differentiate this from initial signup
+                })
+              }
             >
               <Text style={{ color: theme.colors.text, fontSize: 10 }}>
                 Edit profile

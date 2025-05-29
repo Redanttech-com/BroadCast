@@ -90,7 +90,6 @@ const FullImageScreen = ({ route, navigation }) => {
         alignItems: "center",
       }}
     >
-      <StatusBar style="auto" translucent backgroundColor="transparent" />
       {/* Close Button */}
       <TouchableOpacity
         style={{

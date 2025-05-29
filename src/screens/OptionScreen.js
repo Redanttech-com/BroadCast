@@ -226,284 +226,319 @@ const OptionScreen = ({ route }) => {
   );
 
   return (
-    <TouchableWithoutFeedback
-      onPress={() => {
-        Keyboard.dismiss();
-        navigation.goBack();
-      }}
-    >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "rgba(0,0,0,0.3)", // semi-transparent backdrop for effect
+    <SafeAreaView style={{ flex: 1 }}>
+      <TouchableWithoutFeedback
+        onPress={() => {
+          Keyboard.dismiss();
+          navigation.goBack();
         }}
       >
-        <SafeAreaView
+        <View
           style={{
-            backgroundColor: "#fff",
-            paddingTop: 10,
-            paddingBottom: 30,
-            paddingHorizontal: 20,
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -3 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 10,
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.3)", // semi-transparent backdrop for effect
           }}
         >
-          <View
+          <SafeAreaView
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
+              backgroundColor: theme.colors.card,
+              // paddingTop: 10,
+              // paddingBottom: 30,
+              paddingHorizontal: 20,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -3 },
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+              elevation: 10,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: "600" }}>
-              Cast Options
-            </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="close" size={28} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          <OptionButton
-            icon={<Feather name="bookmark" size={22} color="#333" />}
-            label={isBookmarked[pstId] ? "Bookmarked" : "Bookmark"}
-            onPress={() => setIsBookMarkVisible(true)}
-          />
-
-          {user.id === userId && (
-            <>
-              <OptionButton
-                icon={
-                  <MaterialIcons name="delete-outline" size={24} color="red" />
-                }
-                label="Delete Cast"
-                onPress={() => setDeleteModalVisible(true)}
-                iconColor="red"
-                textColor="red"
-              />
-            </>
-          )}
-          {userId !== user.id && (
-            <>
-              <OptionButton
-                icon={<MaterialIcons name="report" size={24} color="orange" />}
-                label={isReported[pstId] ? "Reported" : "Report"}
-                onPress={() => setIsReportedVisible(true)}
-                iconColor="orange"
-                textColor="orange"
-              />
-            </>
-          )}
-
-          {/* Bookmark Modal */}
-          <Modal
-            visible={isBookMarkVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setIsBookMarkVisible(false)}
-          >
             <View
               style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
+                flexDirection: "row",
+                justifyContent: "space-between",
                 alignItems: "center",
+                marginBottom: 10,
               }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: theme.colors.text,
+                }}
+              >
+                Cast Options
+              </Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons name="close" size={28} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <OptionButton
+              icon={
+                <Feather name="bookmark" size={22} color={theme.colors.text} />
+              }
+              label={isBookmarked[pstId] ? "Bookmarked" : "Bookmark"}
+              textColor={theme.colors.text}
+              onPress={() => setIsBookMarkVisible(true)}
+            />
+
+            {user.id === userId && (
+              <>
+                <OptionButton
+                  icon={
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={24}
+                      color="red"
+                    />
+                  }
+                  label="Delete Cast"
+                  onPress={() => setDeleteModalVisible(true)}
+                  iconColor="red"
+                  textColor="red"
+                />
+              </>
+            )}
+            {userId !== user.id && (
+              <>
+                <OptionButton
+                  icon={
+                    <MaterialIcons name="report" size={24} color="orange" />
+                  }
+                  label={isReported[pstId] ? "Reported" : "Report"}
+                  onPress={() => setIsReportedVisible(true)}
+                  iconColor="orange"
+                  textColor="orange"
+                />
+              </>
+            )}
+
+            {/* Bookmark Modal */}
+            <Modal
+              visible={isBookMarkVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setIsBookMarkVisible(false)}
             >
               <View
                 style={{
-                  width: "80%",
-                  backgroundColor: "#fff",
-                  borderRadius: 10,
-                  padding: 20,
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Text
-                  style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}
-                >
-                  Bookmark Cast
-                </Text>
-                <Text style={{ fontSize: 16, color: "#666", marginBottom: 20 }}>
-                  Are you sure you want to bookmark this cast?
-                </Text>
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => setIsBookMarkVisible(false)}
-                    style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 20,
-                      backgroundColor: "#ccc",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 16 }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={toggleBookmark}
-                    style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 20,
-                      backgroundColor: "red",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 16, color: "#fff" }}>
-                      {isBookmarked[pstId] ? "Remove" : "Bookmark"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-
-          {/* Report Modal */}
-          <Modal
-            visible={isReportedVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setIsReportedVisible(false)}
-          >
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <View
-                style={{
-                  width: "85%",
-                  backgroundColor: "#fff",
-                  borderRadius: 10,
-                  padding: 20,
-                }}
-              >
-                <Text
-                  style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}
-                >
-                  {isReported[pstId]
-                    ? "Cast Reported"
-                    : "Select a reason to report:"}
-                </Text>
-                <Picker
-                  selectedValue={reportReason}
-                  onValueChange={(itemValue) => setReportReason(itemValue)}
-                  style={{ width: "100%", color: "black" }}
-                >
-                  <Picker.Item label="Select Reason" value="" />
-                  {reasons.map((reason) => (
-                    <Picker.Item key={reason} label={reason} value={reason} />
-                  ))}
-                </Picker>
                 <View
                   style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginTop: 20,
+                    width: "80%",
+                    backgroundColor: "#fff",
+                    borderRadius: 10,
+                    padding: 20,
+                    alignItems: "center",
                   }}
                 >
-                  <TouchableOpacity
-                    onPress={() => setIsReportedVisible(false)}
+                  <Text
                     style={{
-                      backgroundColor: "#ccc",
-                      padding: 10,
-                      borderRadius: 6,
-                      width: "45%",
-                      alignItems: "center",
+                      fontSize: 18,
+                      fontWeight: "600",
+                      marginBottom: 10,
                     }}
                   >
-                    <Text>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={toggleReport}
-                    style={{
-                      backgroundColor: "orange",
-                      padding: 10,
-                      borderRadius: 6,
-                      width: "45%",
-                      alignItems: "center",
-                    }}
+                    Bookmark Cast
+                  </Text>
+                  <Text
+                    style={{ fontSize: 16, color: "#666", marginBottom: 20 }}
                   >
-                    <Text style={{ color: "#fff" }}>
-                      {isReported[pstId] ? "Reported" : "Report"}
-                    </Text>
-                  </TouchableOpacity>
+                    Are you sure you want to bookmark this cast?
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setIsBookMarkVisible(false)}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        backgroundColor: "#ccc",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 16 }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={toggleBookmark}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        backgroundColor: "red",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 16, color: "#fff" }}>
+                        {isBookmarked[pstId] ? "Remove" : "Bookmark"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          </Modal>
+            </Modal>
 
-          {/* Delete Modal */}
-          <Modal
-            visible={deleteModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setDeleteModalVisible(false)}
-          >
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+            {/* Report Modal */}
+            <Modal
+              visible={isReportedVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setIsReportedVisible(false)}
             >
               <View
                 style={{
-                  width: "80%",
-                  backgroundColor: "#fff",
-                  borderRadius: 10,
-                  padding: 20,
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Text
-                  style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}
+                <View
+                  style={{
+                    width: "85%",
+                    backgroundColor: "#fff",
+                    borderRadius: 10,
+                    padding: 20,
+                  }}
                 >
-                  Delete Cast
-                </Text>
-                <Text style={{ fontSize: 16, color: "#666", marginBottom: 20 }}>
-                  Are you sure you want to delete this cast? This action is
-                  permanent.
-                </Text>
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => setDeleteModalVisible(false)}
+                  <Text
                     style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 20,
-                      backgroundColor: "#ccc",
-                      borderRadius: 6,
+                      fontSize: 18,
+                      fontWeight: "600",
+                      marginBottom: 10,
                     }}
                   >
-                    <Text style={{ fontSize: 16 }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleDelete}
+                    {isReported[pstId]
+                      ? "Cast Reported"
+                      : "Select a reason to report:"}
+                  </Text>
+                  <Picker
+                    selectedValue={reportReason}
+                    onValueChange={(itemValue) => setReportReason(itemValue)}
+                    style={{ width: "100%", color: "black" }}
+                  >
+                    <Picker.Item label="Select Reason" value="" />
+                    {reasons.map((reason) => (
+                      <Picker.Item key={reason} label={reason} value={reason} />
+                    ))}
+                  </Picker>
+                  <View
                     style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 20,
-                      backgroundColor: "red",
-                      borderRadius: 6,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginTop: 20,
                     }}
                   >
-                    <Text style={{ fontSize: 16, color: "#fff" }}>Delete</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setIsReportedVisible(false)}
+                      style={{
+                        backgroundColor: "#ccc",
+                        padding: 10,
+                        borderRadius: 6,
+                        width: "45%",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={toggleReport}
+                      style={{
+                        backgroundColor: "orange",
+                        padding: 10,
+                        borderRadius: 6,
+                        width: "45%",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: "#fff" }}>
+                        {isReported[pstId] ? "Reported" : "Report"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          </Modal>
-        </SafeAreaView>
-      </View>
-    </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* Delete Modal */}
+            <Modal
+              visible={deleteModalVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setDeleteModalVisible(false)}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: "80%",
+                    backgroundColor: "#fff",
+                    borderRadius: 10,
+                    padding: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: "600",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Delete Cast
+                  </Text>
+                  <Text
+                    style={{ fontSize: 16, color: "#666", marginBottom: 20 }}
+                  >
+                    Are you sure you want to delete this cast? This action is
+                    permanent.
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setDeleteModalVisible(false)}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        backgroundColor: "#ccc",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 16 }}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleDelete}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        backgroundColor: "red",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 16, color: "#fff" }}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          </SafeAreaView>
+        </View>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 };
 

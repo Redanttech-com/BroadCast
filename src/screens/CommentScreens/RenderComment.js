@@ -92,7 +92,7 @@ export default function RenderComment({ item, id }) {
         }}
       >
         {loading ? (
-          <View style={{ padding: 50, alignItems: "center" }}>
+          <View style={{ alignItems: "center" }}>
             <ActivityIndicator size="small" color={theme.colors.text} />
           </View>
         ) : (
@@ -227,7 +227,7 @@ export default function RenderComment({ item, id }) {
                   }
                   style={{
                     width: "100%",
-                    height: 400,
+                    height: 200,
                     borderRadius: 8,
                   }}
                   resizeMode="cover"
@@ -237,7 +237,7 @@ export default function RenderComment({ item, id }) {
                 <View
                   style={{
                     width: "100%",
-                    height: 400,
+                    height: 200,
                     borderRadius: 8,
                     overflow: "hidden",
                   }}

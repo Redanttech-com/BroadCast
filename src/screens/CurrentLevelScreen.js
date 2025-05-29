@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, Animated, Platform } from "react-native";
 import { ActivityIndicator, FAB } from "react-native-paper";
 import { useLevel } from "../context/LevelContext";
 import { useTheme } from "../context/ThemeContext";
@@ -10,34 +10,52 @@ export default function CurrentLevelScreen() {
   const { theme } = useTheme();
   const { currentLevel, setCurrentLevel, userDetails } = useLevel();
   const [showOptions, setShowOptions] = useState(false);
-  const fabPosition = new Animated.Value(30);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Animation values
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
 
-  const handleFABPress = () => {
-    setShowOptions(!showOptions);
+  const toggleOptions = () => {
+    if (showOptions) {
+      // Hide animation
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 30,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setShowOptions(false));
+    } else {
+      setShowOptions(true);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   };
 
   const handleLevelChange = (level) => {
     setIsLoading(true);
     setCurrentLevel(level);
-    setShowOptions(false);
-
-    // Wait briefly to simulate loading or give PostScreen time to fetch
-   // setTimeout(() => setIsLoading(false), 1000); // Adjust timing as needed
+    toggleOptions();
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* {isLoading ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <ActivityIndicator size={"small"} />
-        </View>
-      ) : ( */}
-        <PostScreen level={currentLevel} />
-      {/* )} */}
+      <PostScreen level={currentLevel} />
 
       <FAB
         icon="pen"
@@ -49,73 +67,75 @@ export default function CurrentLevelScreen() {
           elevation: 5,
           borderRadius: 50,
         }}
-        color="white"
-        onPress={handleFABPress}
+        color={theme.colors.text}
+        onPress={toggleOptions}
       />
 
       {showOptions && (
-        <View
+        <Animated.View
           style={{
             position: "absolute",
             bottom: 100,
             right: 10,
             backgroundColor: theme.colors.card,
             borderRadius: 10,
-            elevation: 5,
+            elevation: 10,
             padding: 10,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.25,
             shadowRadius: 3.84,
             gap: 10,
+            opacity,
+            transform: [{ translateY }],
           }}
         >
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+          <OptionButton
+            icon={<Ionicons name="globe-sharp" size={18} color={"gray"} />}
+            label="Home"
             onPress={() => handleLevelChange({ type: "home", value: "home" })}
-          >
-            <Ionicons name="globe-sharp" size={18} color={"gray"} />
-            <Text style={{ fontSize: 16, color: theme.colors.text }}>Home</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            textColor={theme.colors.text}
+          />
+          <OptionButton
+            icon={<Feather name="map" size={18} color={"gray"} />}
+            label="County"
             onPress={() =>
               handleLevelChange({ type: "county", value: userDetails?.county })
             }
-          >
-            <Feather name="map" size={18} color={"gray"} />
-            <Text style={{ fontSize: 16, color: theme.colors.text }}>
-              County
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            textColor={theme.colors.text}
+          />
+          <OptionButton
+            icon={<FontAwesome5 name="flag" size={18} color={"gray"} />}
+            label="Constituency"
             onPress={() =>
               handleLevelChange({
                 type: "constituency",
                 value: userDetails?.constituency,
               })
             }
-          >
-            <FontAwesome5 name="flag" size={18} color={"gray"} />
-            <Text style={{ fontSize: 16, color: theme.colors.text }}>
-              Constituency
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            textColor={theme.colors.text}
+          />
+          <OptionButton
+            icon={<FontAwesome5 name="map-pin" size={18} color={"gray"} />}
+            label="Ward"
             onPress={() =>
               handleLevelChange({ type: "ward", value: userDetails?.ward })
             }
-          >
-            <FontAwesome5 name="map-pin" size={18} color={"gray"} />
-            <Text style={{ fontSize: 16, color: theme.colors.text }}>Ward</Text>
-          </TouchableOpacity>
-        </View>
+            textColor={theme.colors.text}
+          />
+        </Animated.View>
       )}
     </View>
   );
 }
+
+// 🧱 Reusable option button
+const OptionButton = ({ icon, label, onPress, textColor }) => (
+  <TouchableOpacity
+    style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+    onPress={onPress}
+  >
+    {icon}
+    <Text style={{ fontSize: 16, color: textColor }}>{label}</Text>
+  </TouchableOpacity>
+);

@@ -27,7 +27,6 @@ const Tab = createBottomTabNavigator();
 export default function TabNavigator() {
   const { theme } = useTheme();
   const { colors } = theme;
-
   const { currentLevel, setCurrentLevel } = useLevel();
 
   return (
