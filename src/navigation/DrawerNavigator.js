@@ -8,22 +8,15 @@ import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { Feather, FontAwesome, Fontisto, Ionicons } from "@expo/vector-icons";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-expo";
 import { Avatar } from "react-native-paper";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../services/firebase";
 import TabNavigator from "./TabNavigator";
 import ProfileScreen from "../screens/ProfileScreen";
-import MarketScreen from "../screens/MarketScreen";
+import MarketScreen from "../screens/MarketScreens/MarketScreen";
 import Members from "../screens/Members";
 import SettingsScreen from "../screens/SettingsScreen";
 import MediaScreen from "../screens/MediaScreen";
-import ChatScreen from "../screens/ChatScreen";
+import ChatScreen from "../screens/ChatScreens/ChatScreen";
 import Trends from "../screens/Trends";
 import { useLevel } from "../context/LevelContext";
 import { useTheme } from "../context/ThemeContext";
@@ -44,7 +37,7 @@ export const drawerScreens = [
     name: "Chat",
     component: ChatScreen,
     options: {
-      title: "Chat",
+      title: "Messages",
       drawerIcon: ({ color, size }) => (
         <Fontisto name="hipchat" size={size} color={color} />
       ),
@@ -111,25 +104,23 @@ function CustomDrawerContent(props) {
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-      const fetchUserDetails = async () => {
-        if (!user?.id) return;
-        setLoading(true);
-        try {
-          const docRef = doc(db, "users", user.id);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            setUserDetails({ ...docSnap.data(), uid: user.id });
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        } finally {
-          setLoading(false);
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, "users", user.id),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setUserDetails({ ...docSnap.data(), uid: user.id });
         }
-      };
-  
-      fetchUserDetails();
-    }, [user?.id]);
+      },
+      (error) => {
+        console.error("Error listening to user data:", error);
+      }
+    );
+
+    return () => unsubscribe(); // Clean up the listener on unmount
+  }, [user?.id]);
 
   return (
     <DrawerContentScrollView
@@ -153,8 +144,8 @@ function CustomDrawerContent(props) {
             size={40}
             source={{
               uri:
-                userDetails?.imageUrl ||
                 userDetails?.userImg ||
+                userDetails?.imageUrl ||
                 "https://via.placeholder.com/150",
             }}
             style={{ borderRadius: 20 }}
@@ -186,7 +177,7 @@ function CustomDrawerContent(props) {
             </Text>
           </View>
         </Pressable>
-        <SignedIn>
+        {/* <SignedIn>
           <TouchableOpacity
             onPress={async () => {
               try {
@@ -207,7 +198,7 @@ function CustomDrawerContent(props) {
             <FontAwesome name="sign-out" size={16} color="white" />
             <Text style={{ color: "white", marginLeft: 4 }}>Logout</Text>
           </TouchableOpacity>
-        </SignedIn>
+        </SignedIn> */}
       </View>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>
@@ -222,7 +213,6 @@ export default function DrawerNavigator() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={({ navigation, route }) => {
         const isHome = route.name === "Tabs";
-
         return {
           headerTransparent: true,
           headerTitle: "",
@@ -238,7 +228,7 @@ export default function DrawerNavigator() {
                 borderRadius: 50,
                 padding: 4,
                 backgroundColor: "gray",
-                zIndex: 999, // Ensure it appears above other elements
+                zIndex: 999,
               }}
             >
               <Ionicons name="menu" size={28} color="white" />
@@ -260,7 +250,7 @@ export default function DrawerNavigator() {
             <Ionicons name="planet" size={size} color={color} />
           ),
           drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <Ionicons name="planet" size={size} color={color} />
           ),
         }}
       />

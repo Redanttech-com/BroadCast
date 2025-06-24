@@ -13,6 +13,7 @@ import { useLevel } from "../context/LevelContext";
 import { db } from "../services/firebase";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
+import FastImage from "@d11/react-native-fast-image";
 
 const POLITICAL_KEYWORDS = [
   "government",
@@ -82,6 +83,20 @@ export default function Trends() {
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const { theme } = useTheme();
+  const formattedTitle =
+    currentLevel?.type === "home"
+      ? "Home"
+      : `${
+          currentLevel?.value && typeof currentLevel.value === "string"
+            ? currentLevel.value.charAt(0).toUpperCase() +
+              currentLevel.value.slice(1)
+            : "currentLevel"
+        } ${
+          currentLevel?.type && typeof currentLevel.type === "string"
+            ? currentLevel.type.charAt(0).toUpperCase() +
+              currentLevel.type.slice(1)
+            : "Level"
+        }`;
 
   useEffect(() => {
     if (!currentLevel?.type || !currentLevel?.value) return;
@@ -175,7 +190,7 @@ export default function Trends() {
       onPress={() => !item.isKeyword && setSelectedPost(item)}
     >
       {!item.isKeyword && item.images && (
-        <Image source={{ uri: item.images }} style={styles.thumbnail} />
+        <FastImage source={{ uri: item.images }} style={styles.thumbnail} />
       )}
       <Text
         style={{
@@ -206,6 +221,16 @@ export default function Trends() {
     >
       <Text
         style={{
+          color: theme.colors.text,
+          fontSize: 18,
+          fontWeight: "bold",
+          textAlign: "center",
+        }}
+      >
+        Most Popular 🔥
+      </Text>
+      <Text
+        style={{
           fontSize: 24,
           fontWeight: "bold",
           textAlign: "center",
@@ -213,7 +238,7 @@ export default function Trends() {
           color: theme.colors.text,
         }}
       >
-        {currentLevel.value} Most Popular 🔥
+        {formattedTitle}
       </Text>
       <FlashList
         data={posts}
@@ -296,7 +321,6 @@ export default function Trends() {
 }
 
 const styles = StyleSheet.create({
-
   thumbnail: {
     width: "100%",
     height: 150,

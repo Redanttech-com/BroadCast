@@ -6,30 +6,32 @@ import ProfileTabs from "./ProfileTabs"; // Import the top tabs
 import {
   collection,
   getDocs,
-  onSnapshot,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../services/firebase";
+import { db, storage } from "../services/firebase";
 import { useTheme } from "../context/ThemeContext";
+import { useFollow } from "../context/FollowContext";
+import { getDownloadURL } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
-import UserScreenTabs from "./userScreenTabs";
-import { useLevel } from "../context/LevelContext";
 
-export default function UserScreen() {
-  const route = useRoute();
-  const { uid } = route.params;
+export default function ProfileScreen() {
   const { user } = useUser();
   const [userData, setUserData] = useState(null);
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const { currentLevel } = useLevel();
+  const { followingCount, followersCount } = useFollow();
+  const route = useRoute();
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [userImg, setUserImg] = useState(null);
+  const { uid, media } = route.params;
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!uid) return;
       try {
-        const q = query(collection(db, "userPosts"), where("uid", "==", uid));
+        const q = query(collection(db, "users"), where("uid", "==", uid));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           setUserData(snapshot.docs[0].data());
@@ -41,23 +43,44 @@ export default function UserScreen() {
     fetchUserData();
   }, [uid]);
 
+  const sendUserImg = async () => {
+    if (!uid) return;
+    setUserLoading(true);
+
+    try {
+      const userDocRef = doc(db, "users", uid); // correct way to reference user's document
+      const imageRef = ref(storage, `users/${uid}/userImg`);
+
+      if (selectedFile) {
+        await uploadString(imageRef, selectedFile, "data_url");
+        const downloadURL = await getDownloadURL(imageRef);
+
+        await updateDoc(userDocRef, {
+          userImg: downloadURL,
+        });
+
+        setUserImg(downloadURL);
+        setSelectedFile(null);
+      } else {
+        console.log("No file selected.");
+      }
+    } catch (error) {
+      console.error("Error updating profile image: ", error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedFile) {
+      sendUserImg();
+    }
+  }, [selectedFile]);
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          top: 40,
-          right: 20,
-          zIndex: 2,
-          backgroundColor: "rgba(0,0,0,0.6)",
-          padding: 5,
-          borderRadius: 50,
-        }}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="close" size={30} color="white" />
-      </TouchableOpacity>
-      <View className="flex-row items-center justify-between px-3 mt-20">
+      <View className="flex-row  justify-between px-3 mt-10">
+        <TouchableOpacity onPress={() => navigation.goBack()} >
+          <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+        </TouchableOpacity>
         <View className="justify-center items-center gap-4">
           <Image
             source={{ uri: userData?.userImg || userData?.imageUrl }}
@@ -65,23 +88,60 @@ export default function UserScreen() {
             width={80}
             style={{ borderRadius: 20, marginLeft: 40 }}
           />
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderRadius: 20,
+              padding: 10,
+              flexDirection: "row",
+              gap: 2,
+            }}
+            onPress={() =>
+              navigation.navigate("ChatRoom", {
+                item: {
+                  uid: uid,
+                  name: userData?.name,
+                  nickname: userData?.nickname,
+                  imageUrl: userData?.imageUrl,
+                  imageUrl: userData?.imageUrl,
+                },
+              })
+            }
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={20}
+              color={theme.colors.text}
+            />
+            <Text style={{ color: theme.colors.text }}>Chat</Text>
+          </TouchableOpacity>
+        </View>
+        <View className="m-4 gap-2">
           <View className="bg-blue-400 w-32 p-2 items-center rounded-full">
             <Text className="font-bold text-white text-xs">Verify Account</Text>
           </View>
-        </View>
 
-        <View className="m-4 gap-2">
           <View className="mt-4 flex-row justify-between items-center gap-4">
             <Text
               className="font-bold text-xl"
               style={{ color: theme.colors.text }}
             >
-              {userData?.name}
+              {userData?.name}{" "}
+              <Text className="ml-2" style={{ color: theme.colors.primary }}>
+                @{userData?.nickname}
+              </Text>
             </Text>
             <Pressable
               className="p-2 rounded-md"
               style={{ borderWidth: 1, borderColor: theme.colors.text }}
-              onPress={() => navigation.navigate("LocationSelectionScreen")}
+              onPress={() =>
+                navigation.navigate("LocationSelectionScreen", {
+                  selectedCounty: user?.location?.county || null,
+                  selectedConstituency: user?.location?.constituency || null,
+                  selectedWard: user?.location?.ward || null,
+                  fromProfileEdit: true, // optional flag to differentiate this from initial signup
+                })
+              }
             >
               <Text style={{ color: theme.colors.text, fontSize: 10 }}>
                 Edit profile
@@ -99,7 +159,7 @@ export default function UserScreen() {
                 className="font-extrabold  text-xs"
                 style={{ color: theme.colors.text }}
               >
-                1
+                {followersCount}
               </Text>
 
               <Text className=" text-sm" style={{ color: theme.colors.text }}>
@@ -119,7 +179,7 @@ export default function UserScreen() {
                 className="font-extrabold text-sm"
                 style={{ color: theme.colors.text }}
               >
-                1
+                {followingCount}
               </Text>
               <Text className=" text-sm" style={{ color: theme.colors.text }}>
                 Following
@@ -128,7 +188,7 @@ export default function UserScreen() {
           </View>
         </View>
       </View>
-      <UserScreenTabs />
+      <ProfileTabs />
     </View>
   );
 }

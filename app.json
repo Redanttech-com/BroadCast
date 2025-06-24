@@ -3,7 +3,7 @@
     "name": "BroadCast",
     "slug": "BroadCast",
     "scheme": "broadcast",
-    "version": "2.1.7",
+    "version": "2.1.8",
     "orientation": "portrait",
     "icon": "./src/assets/icon.jpg",
     "userInterfaceStyle": "automatic",
@@ -31,11 +31,24 @@
       "expo-web-browser",
       "expo-secure-store",
       [
+        "react-native-video",
+        {
+          "enabledNotificationControls": true,
+          "androidEctensions": {
+            "useExpoplayerRtsp": false,
+            "useExpoplayerSmoothStreaming": false,
+            "useExpoplayerHls": false,
+            "useExpoplayerDash": false
+          }
+        }
+      ],
+      [
         "expo-av",
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "extra": {
       "eas": {

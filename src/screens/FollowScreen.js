@@ -4,12 +4,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ProfileFollowTabs from "./ProfileFollowTabs";
 import { useTheme } from "../context/ThemeContext";
+import { useLevel } from "../context/LevelContext";
 
 export default function FollowScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const initialTab = route.params?.tab || "followers";
   const { theme } = useTheme();
+    const { followersCount, followingCount } = useLevel();
+  
 
   const [activeTab, setActiveTab] = useState(
     initialTab === "following" ? "Following" : "Followers"
@@ -32,7 +35,7 @@ export default function FollowScreen() {
     <View style={{flex:1, backgroundColor: theme.colors.background}}>
       <View className="w-full flex-row justify-center items-center mb-4 mt-10 px-4">
         <Text className="font-bold text-2xl  text-center flex-1" style={{color: theme.colors.text}}>
-          {activeTab}
+        Members
         </Text>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

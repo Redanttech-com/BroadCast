@@ -16,7 +16,7 @@ const lightTheme = {
 const darkTheme = {
   mode: "dark",
   colors: {
-    background: "#080021",
+    background: "#020016",
     text: "#ffffff",
     primary: "#60a5fa",
     card: "#1f2937",

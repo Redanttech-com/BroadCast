@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Video } from "expo-av";
+import Carousel from "react-native-reanimated-carousel";
 import {
   Image,
   Text,
@@ -11,33 +11,65 @@ import {
   Pressable,
   StyleSheet,
   Share,
+  Dimensions,
+  FlatList,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "@clerk/clerk-expo";
 import { useLevel } from "../context/LevelContext";
 import { db } from "../services/firebase";
 import {
+  addDoc,
   collection,
   deleteDoc,
   doc,
   onSnapshot,
+  serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { Link, useIsFocused, useNavigation } from "@react-navigation/native";
 import { formatMoment } from "../utils/formartMoment";
 import { formatCount } from "../utils/format";
+import FastImage from "@d11/react-native-fast-image";
+import { FlashList } from "@shopify/flash-list";
+import Video from "react-native-video";
 
-export default function RenderPostItem({ item, id}) {
+export default function RenderPostItem({ item, id }) {
+  const mediaListRef = useRef(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const { theme } = useTheme();
   const { user } = useUser();
-  const { currentLevel } = useLevel();
+  const { currentLevel, userDetails } = useLevel();
   const navigation = useNavigation();
-  const [mutedMap, setMutedMap] = useState({});
   const [likes, setLikes] = useState([]);
   const [hasLiked, setHasLiked] = useState(false);
   const [comments, setComments] = useState([]);
   const [muted, setMuted] = useState(true);
   const isFocused = useIsFocused();
+  const [loading, setLoading] = useState(true);
+  const videoRef = useRef(null);
+  const { width: screenWidth } = Dimensions.get("window");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const toggleMute = () => setMuted((prev) => !prev);
+
+  const handlePress = () => {
+    const media = Array.isArray(item.media)
+      ? item.media.map((m) => ({
+          type: m.image ? "image" : "video",
+          uri: m.image || m.video,
+        }))
+      : item.media && item.media.image
+      ? [{ type: "image", uri: item.media.image }]
+      : item.media && item.media.video
+      ? [{ type: "video", uri: item.media.video }]
+      : [];
+
+    navigation.navigate("FullImageScreen", {
+      media,
+      text: item.text,
+    });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -65,7 +97,7 @@ export default function RenderPostItem({ item, id}) {
     if (user?.id) {
       setHasLiked(likes.findIndex((like) => like.id === user.id) !== -1);
     }
-  }, [likes, user?.id]); // ✅ add userData?.uid to dependencies
+  }, [likes, user?.id]); // ✅ add userDetails?.uid to dependencies
 
   async function likePost() {
     if (user?.id) {
@@ -79,28 +111,49 @@ export default function RenderPostItem({ item, id}) {
     }
   }
 
+  //recats
+  const recast = async () => {
+    setLoading(true);
+    if (item && user?.id && currentLevel) {
+      const postData = item;
+      try {
+        const newPostData = {
+          uid: userDetails?.uid,
+          text: postData?.text,
+          userImg: userDetails?.userImg || "",
+          timestamp: serverTimestamp(),
+          lastname: userDetails?.lastname,
+          name: userDetails?.name,
+          nickname: userDetails?.nickname,
+          from: postData?.name,
+          fromNickname: postData?.nickname,
+          imageUrl: userDetails?.imageUrl,
+          verified: userDetails?.verified || "",
+          views: [],
+          ...(postData.category && { category: postData.category }),
+          ...(postData.media && { media: postData.media }),
+        };
+
+        await addDoc(
+          collection(db, currentLevel?.type, currentLevel?.value, "posts"),
+          newPostData
+        );
+      } catch (error) {
+        console.error("Error reposting the post:", error);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      console.log("No post data available to repost.");
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (item?.type === "video") {
       setMuted(!isFocused);
     }
   }, [isFocused, item?.type]);
-
-  const toggleMute = () => {
-    setMuted((prev) => !prev);
-  };
-
-  // const videoRef = useRef(null);
-
-  // useEffect(() => {
-  //   if (videoRef.current) {
-  //     if (isVisible) {
-  //       videoRef.current.playAsync();
-  //     } else {
-  //       videoRef.current.pauseAsync();
-  //       videoRef.current.setIsMutedAsync(true); // Optional mute
-  //     }
-  //   }
-  // }, [isVisible]);
 
   const handleShare = async (text) => {
     try {
@@ -165,7 +218,6 @@ export default function RenderPostItem({ item, id}) {
           </Text>
         </View>
       )}
-
       {/* Header: Avatar + Name */}
       <View
         style={{
@@ -180,23 +232,23 @@ export default function RenderPostItem({ item, id}) {
             navigation.navigate("UserScreen", {
               name: item.name,
               image: item.imageUrl,
+              nickname: item.nickname,
               uid: item.uid,
             })
           }
           style={{ flex: 1 }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {item.imageUrl && (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={{
-                  height: 40,
-                  width: 40,
-                  borderRadius: 10,
-                }}
-                resizeMode="cover"
-              />
-            )}
+            <FastImage
+              source={{ uri: item.userImg || item.imageUrl }}
+              style={{
+                height: 40,
+                width: 40,
+                borderRadius: 10,
+              }}
+              resizeMode="cover"
+            />
+
             <View style={{ flex: 1 }}>
               <Text
                 style={{
@@ -246,15 +298,12 @@ export default function RenderPostItem({ item, id}) {
           />
         </TouchableOpacity>
       </View>
-
-      {/* Content: Text, Image, Video */}
       <Pressable
         onPress={() =>
-          navigation.navigate("FullImageScreen", {
-            image: item.images,
-            video: item.videos,
+          navigation.navigate("FullMedia", {
+            media: [], // empty array for no media
             text: item.text,
-            pstId: item.id,
+            postId: item.id,
           })
         }
       >
@@ -265,67 +314,156 @@ export default function RenderPostItem({ item, id}) {
             paddingHorizontal: 10,
             color: theme.colors.text,
           }}
+          numberOfLines={4}
         >
           {item.text}
         </Text>
-
-        {item.images && (
-          <View style={{ position: "relative" }}>
-            <Image
-              source={
-                typeof item.images === "string"
-                  ? { uri: item.images }
-                  : item.images
-              }
-              style={{
-                width: "100%",
-                height: 400,
-                borderRadius: 8,
-              }}
-              resizeMode="cover"
-            />
-          </View>
-        )}
-
-        {item.videos && (
-          <View style={{ position: "relative" }}>
-            <Video
-              // ref={videoRef}
-              source={{ uri: item.videos }}
-              resizeMode="cover"
-              isMuted={muted}
-              style={{
-                width: "100%",
-                height: 400,
-                borderRadius: 8,
-              }}
-              isLooping={true}
-              shouldPlay={isFocused}
-            />
-            <TouchableOpacity
-              onPress={toggleMute}
-              style={{
-                position: "absolute",
-                top: 20,
-                right: 10,
-                backgroundColor: theme.colors.background + 99,
-                padding: 5,
-                borderRadius: 50,
-                zIndex: 20,
-              }}
-            >
-              <Ionicons
-                name={muted ? "volume-mute" : "volume-high"}
-                size={18}
-                color={theme.colors.text}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
       </Pressable>
 
+      {/* Content: Text, Image, Video */}
+      {Array.isArray(item.media) && item.media.length > 1 ? (
+        <>
+          <FlashList
+            horizontal
+            estimatedItemSize={screenWidth}
+            data={item.media}
+            pagingEnabled
+            keyExtractor={(mediaItem, index) => index.toString()}
+            renderItem={({ item: mediaItem }) => (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("FullMedia", {
+                    media: item.media,
+                    text: item.text,
+                    postId: item.id,
+                  })
+                }
+              >
+                <View
+                  style={{
+                    width: screenWidth,
+                    height: 400,
+                  }}
+                >
+                  {mediaItem?.type === "image" ? (
+                    <FastImage
+                      source={{ uri: mediaItem.url }}
+                      style={{ width: "100%", height: "100%", borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <>
+                      <Video
+                        source={{ uri: mediaItem.url }}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: 8,
+                        }}
+                        resizeMode="cover"
+                        muted={true}
+                        repeat={true}
+                        paused={false}
+                      />
+                      <Ionicons
+                        name="play-circle-outline"
+                        size={64}
+                        color="white"
+                        onPress={toggleMute}
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: [{ translateX: -32 }, { translateY: -32 }],
+                          zIndex: 10,
+                        }}
+                      />
+                    </>
+                  )}
+                </View>
+              </Pressable>
+            )}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(
+                e.nativeEvent.contentOffset.x / screenWidth
+              );
+              setCurrentIndex(index);
+            }}
+            showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+          />
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
+            {item.media.map((_, index) => (
+              <View
+                key={index}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  marginHorizontal: 4,
+                  backgroundColor: index === currentIndex ? "#333" : "#ccc",
+                }}
+              />
+            ))}
+          </View>
+        </>
+      ) : Array.isArray(item.media) &&
+        item.media.length === 1 &&
+        item.media[0]?.url ? (
+        <Pressable
+          onPress={() =>
+            navigation.navigate("FullMedia", {
+              media: item.media,
+              text: item.text,
+              postId: item.id,
+            })
+          }
+        >
+          <View style={{ width: screenWidth, height: 400 }}>
+            {item.media[0].type === "image" ? (
+              <FastImage
+                source={{ uri: item.media[0].url }}
+                style={{ width: "100%", height: "100%", borderRadius: 8 }}
+                resizeMode="cover"
+              />
+            ) : (
+              <>
+                <Video
+                  source={{ uri: item.media[0].url }}
+                  style={{ width: "100%", height: "100%", borderRadius: 8 }}
+                  resizeMode="cover"
+                  muted={true}
+                  repeat={true}
+                  paused={false}
+                />
+                <Ionicons
+                  name="play-circle-outline"
+                  size={64}
+                  color="white"
+                  onPress={toggleMute}
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: [{ translateX: -32 }, { translateY: -32 }],
+                    zIndex: 10,
+                  }}
+                />
+              </>
+            )}
+          </View>
+        </Pressable>
+      ) : null}
+
       {/* Interaction Buttons */}
-      <View className="flex-row items-center gap-6 p-2 justify-center">
+      <View className="flex-row items-center gap-6 p-2 justify-center ">
         <TouchableOpacity style={styles.container} onPress={likePost}>
           <AntDesign
             name="heart"
@@ -377,6 +515,7 @@ export default function RenderPostItem({ item, id}) {
             gap: 4,
             padding: 4,
           }}
+          onPress={recast}
         >
           <MaterialCommunityIcons
             name="repeat"

@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/clerk-expo";
-import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../services/firebase";
 
@@ -14,8 +14,6 @@ export const LevelProvider = ({ children }) => {
   const { user } = useUser();
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingUserDetails, setLoadingUserDetails] = useState(true);
-
-
 
   useEffect(() => {
     if (!user?.id) {
@@ -42,13 +40,19 @@ export const LevelProvider = ({ children }) => {
 
     return () => unsubscribe();
   }, [user?.id]);
-  
-  
 
+  
 
   return (
     <LevelContext.Provider
-      value={{ userDetails, setUserDetails, currentLevel, setCurrentLevel, loadingUser, setLoadingUser }}
+      value={{
+        userDetails,
+        setUserDetails,
+        currentLevel,
+        setCurrentLevel,
+        loadingUser,
+        setLoadingUser,
+      }}
     >
       {children}
     </LevelContext.Provider>

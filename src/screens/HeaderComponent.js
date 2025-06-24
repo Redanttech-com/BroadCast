@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 import React from "react";
-import StatusList from "../components/StatusList/StatusList";
+import StatusList from "./Status/StatusList";
 import { useLevel } from "../context/LevelContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -25,11 +25,13 @@ export default function HeaderComponent() {
   return (
     <View className="shadow-sm mt-14">
       <View className="w-full justify-center items-center">
-        <Text style={{color: theme.colors.text, fontWeight: "bold", fontSize: 20}}>
+        <Text
+          style={{ color: theme.colors.text, fontWeight: "bold", fontSize: 20 }}
+        >
           {formattedTitle}
         </Text>
       </View>
-      <View style={{ minHeight: 100, shadowColor: "#000", shadowRadius: 4 }}>
+      <View style={{ minHeight: 100, shadowRadius: 4 }}>
         <StatusList />
       </View>
     </View>

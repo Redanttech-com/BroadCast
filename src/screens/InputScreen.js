@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   Pressable,
-  Image,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -15,8 +14,10 @@ import { useTheme } from "../context/ThemeContext";
 import { useLevel } from "../context/LevelContext";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native-paper";
-import { Video, ResizeMode } from "expo-av";
+
 import { useMedia } from "../context/MediaContext";
+import FastImage from "@d11/react-native-fast-image";
+import Video, { ResizeMode } from "react-native-video";
 
 export default function InputScreen() {
   const { theme } = useTheme();
@@ -48,22 +49,24 @@ export default function InputScreen() {
               }`}
         </Text>
 
+        <View className="px-4">
+          <TextInput
+            style={[
+              styles.input,
+              {
+                color: theme.colors.text,
+                borderColor: theme.colors.text + 99,
+                borderWidth: 1,
+              },
+            ]}
+            placeholder="What's on your mind?"
+            placeholderTextColor={theme.colors.text + "88"}
+            multiline
+            value={input}
+            onChangeText={setInput}
+          />
+        </View>
         {/* Text Input */}
-        <TextInput
-          style={[
-            styles.input,
-            {
-              color: theme.colors.text,
-              borderColor: "#ccc",
-              borderWidth: 1,
-            },
-          ]}
-          placeholder="What's on your mind?"
-          placeholderTextColor={theme.colors.text + "88"}
-          multiline
-          value={input}
-          onChangeText={setInput}
-        />
 
         {/* Media Actions */}
         <View style={styles.actions}>
@@ -121,27 +124,42 @@ export default function InputScreen() {
         </View>
 
         {/* Media Preview */}
-        {media && media.uri ? (
-          <View style={styles.mediaPreview}>
-            {media.type === "video" ? (
-              <Video
-                source={{ uri: media.uri }}
-                style={styles.media}
-                useNativeControls
-                shouldPlay
-                resizeMode={ResizeMode.COVER}
-              />
-            ) : (
-              <Image
-                source={{ uri: media.uri }}
-                style={styles.media}
-                resizeMode="cover"
-              />
-            )}
+        {media.length > 0 ? (
+          <View style={styles.mediaPreviewContainer}>
+            {media.map((item, index) => (
+              <View key={index} style={styles.mediaPreview}>
+                {item.type === "video" ? (
+                  <Video
+                    source={{ uri: item.uri }}
+                    style={
+                      media.length === 1 ? styles.singleMedia : styles.media
+                    }
+                    useNativeControls
+                    shouldPlay={false}
+                    resizeMode={ResizeMode.COVER}
+                    muted={true}
+                    repeat={true}
+                    paused={false}
+                    controls={true}
+                  />
+                ) : (
+                  <FastImage
+                    source={{ uri: item.uri }}
+                    style={
+                      media.length === 1 ? styles.singleMedia : styles.media
+                    }
+                    resizeMode="cover"
+                  />
+                )}
 
-            <Pressable style={styles.removeMedia} onPress={clearMedia}>
-              <FontAwesome name="times" size={16} color="#fff" />
-            </Pressable>
+                <Pressable
+                  style={styles.removeMedia}
+                  onPress={() => clearMedia(index)}
+                >
+                  <FontAwesome name="times" size={16} color="#fff" />
+                </Pressable>
+              </View>
+            ))}
           </View>
         ) : null}
       </ScrollView>
@@ -152,7 +170,6 @@ export default function InputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     paddingTop: 60,
   },
   heading: {
@@ -205,5 +222,61 @@ const styles = StyleSheet.create({
     backgroundColor: "#0008",
     padding: 6,
     borderRadius: 20,
+  },
+  mediaPreviewContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  },
+
+  mediaPreview: {
+    position: "relative",
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
+  // media: {
+  //   width: "100%",
+  //   height: "100%",
+  //   borderRadius: 8,
+  // },
+
+  removeMedia: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 12,
+    padding: 4,
+  },
+  mediaPreviewContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: 8,
+  },
+  mediaPreview: {
+    position: "relative",
+  },
+  media: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  singleMedia: {
+    width: "100%",
+    aspectRatio: 1, // or 16 / 9 if you prefer wide
+    borderRadius: 8,
+  },
+  removeMedia: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    padding: 4,
+    borderRadius: 12,
   },
 });

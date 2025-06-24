@@ -23,6 +23,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useRoute } from "@react-navigation/native";
+import FastImage from "@d11/react-native-fast-image";
 
 const screenWidth = Dimensions.get("window").width;
 const isSmallScreen = screenWidth < 360;
@@ -92,7 +93,7 @@ export default function ProfilePosts() {
             isMuted
           />
         ) : (
-          <Image
+          <FastImage
             source={{ uri: mediaUri }}
             style={{ width: "100%", height: "100%" }}
             resizeMode="cover"
@@ -132,7 +133,7 @@ export default function ProfilePosts() {
             onPress={() => setSelectedItem(null)}
           >
             {selectedItem.images ? (
-              <Image
+              <FastImage
                 source={{ uri: selectedItem.images }}
                 style={{
                   width: "90%",

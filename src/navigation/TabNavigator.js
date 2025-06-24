@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import MarketScreen from "../screens/MarketScreen";
+import MarketScreen from "../screens/MarketScreens/MarketScreen";
 import InputScreen from "../screens/InputScreen";
 import { useTheme } from "../context/ThemeContext";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -50,7 +50,7 @@ export default function TabNavigator() {
                 currentLevel.value.slice(1)
               : "Level",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="planet" size={size} color={color} />
+            <Ionicons name="planet-outline" size={size} color={color} />
           ),
         }}
       />
@@ -61,7 +61,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: "Market",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart" size={size} color={color} />
+            <Ionicons name="cart-outline" size={size} color={color} />
           ),
         }}
       />
@@ -81,7 +81,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: "News",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="newspaper" size={size} color={color} />
+            <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
         }}
       />
@@ -91,7 +91,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />

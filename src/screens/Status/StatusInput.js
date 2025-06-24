@@ -20,13 +20,14 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db, storage } from "../services/firebase";
+import { db, storage } from "../../services/firebase";
 import { ActivityIndicator } from "react-native-paper";
 import { useUser } from "@clerk/clerk-expo";
-import { useLevel } from "../context/LevelContext";
+import { useLevel } from "../../context/LevelContext";
 import Toast from "react-native-toast-message";
 import { ResizeMode } from "expo-av";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
+import FastImage from "@d11/react-native-fast-image";
 
 export default function StatusInput() {
   const navigation = useNavigation();
@@ -179,7 +180,7 @@ export default function StatusInput() {
             marginBottom: 12,
             minHeight: 80,
             textAlignVertical: "top",
-            color: theme.colors.text, // Use theme color for text 
+            color: theme.colors.text, // Use theme color for text
           }}
         />
 
@@ -240,7 +241,7 @@ export default function StatusInput() {
               resizeMode="cover"
             />
           ) : (
-            <Image
+            <FastImage
               source={{ uri: media.uri }}
               style={{ width: "100%", height: 500 }}
               resizeMode="cover"

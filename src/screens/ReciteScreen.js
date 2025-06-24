@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,62 +7,166 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { db } from "../services/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useLevel } from "../context/LevelContext";
+import { ActivityIndicator } from "react-native-paper";
+import { useTheme } from "../context/ThemeContext";
 
 export default function ReciteScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { post } = route.params || {};
+  const { userDetails, currentLevel } = useLevel();
 
-  const [text, setText] = React.useState("");
+  const [citeInput, setCiteInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
 
-  const handlePostRecite = () => {
-    // TODO: Implement recite save logic here (e.g., Firestore)
-    console.log("Recited with text:", text);
-    navigation.goBack();
+  const cite = async () => {
+    setLoading(true);
+    if (post) {
+      const postData = post;
+      if (
+        postData &&
+        typeof postData?.text === "string" &&
+        typeof citeInput === "string"
+      ) {
+        try {
+          await addDoc(
+            collection(db, currentLevel.type, currentLevel.value, "posts"),
+            {
+              uid: userDetails?.uid,
+              text: postData.text,
+              citeInput: citeInput,
+              userImg: userDetails.userImg || "",
+              imageUrl: userDetails?.imageUrl,
+              lastname: userDetails.lastname,
+              timestamp: serverTimestamp(),
+              citetimestamp: postData.timestamp.toDate(),
+              name: userDetails.name,
+              fromUser: postData.name,
+              nickname: userDetails.nickname,
+              citeNickname: postData.nickname,
+              fromlastname: postData.lastname,
+              citeUserImg: postData.userImg,
+              verified: userDetails.verified || "",
+              views: [],
+              ...(postData.imageUrl && { citeImageUrl: postData.imageUrl }),
+              ...(postData.category && { category: postData.category }),
+              ...(postData.media && { media: postData.media }),
+            }
+          );
+          setCiteInput("");
+        } catch (error) {
+          console.error("Error reposting the cast:", error);
+        }
+      } else {
+        console.error(
+          "Invalid data: postData.text or citeInput is not a string."
+        );
+      }
+    } else {
+      console.log("No post data available to cast.");
+    }
+    setLoading(false);
   };
 
   return (
-    <SafeAreaView style={{flex: 1}} edges={["bottom"]}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior="padding"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    <SafeAreaView style={{ flex: 1 }}>
+      <TouchableWithoutFeedback
+        onPress={() => {
+          Keyboard.dismiss();
+          navigation.goBack();
+        }}
       >
-        <View style={styles.modal}>
-          {/* Close Button */}
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={() => navigation.goBack()}
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+        >
+          <SafeAreaView
+            style={{
+              backgroundColor: theme.colors.card,
+              // paddingTop: 10,
+              // paddingBottom: 30,
+              paddingHorizontal: 20,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -3 },
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+              elevation: 10,
+            }}
           >
-            <Ionicons name="close" size={24} color="#333" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
 
-          {/* Post being recited */}
-          <View style={styles.originalPost}>
-            <Text style={styles.originalPostText} numberOfLines={4}>
-              {post?.text || "Original post content goes here."}
-            </Text>
-          </View>
+            <View
+              style={{
+                backgroundColor: theme.colors.background,
+                borderRadius: 10,
+                padding: 12,
+                marginBottom: 16,
+              }}
+            >
+              <Text
+                style={{ color: theme.colors.text, fontSize: 14 }}
+                numberOfLines={2}
+              >
+                {post?.text || "Original post content goes here."}
+              </Text>
+            </View>
 
-          {/* Input */}
-          <TextInput
-            style={styles.input}
-            placeholder="Add your recite..."
-            multiline
-            value={text}
-            onChangeText={setText}
-          />
+            <TextInput
+              style={{
+                backgroundColor: theme.colors.background,
+                padding: 5,
+                borderRadius: 10,
+                height: 100,
+                textAlignVertical: "top",
+                fontSize: 16,
+                marginBottom: 16,
+                color: theme.colors.text,
+                
+              }}
+              placeholder="Add your recite..."
+              placeholderTextColor={{ color: theme.colors.text }}
+              multiline
+              value={citeInput}
+              onChangeText={setCiteInput}
+            />
 
-          {/* Post button */}
-          <TouchableOpacity style={styles.postBtn} onPress={handlePostRecite}>
-            <Text style={styles.postBtnText}>Recite</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+            <TouchableOpacity
+              onPress={cite}
+              disabled={!citeInput}
+              style={{
+                backgroundColor: citeInput ? "#2563eb" : "#374151",
+                padding: 16,
+                borderRadius: 999,
+                alignItems: "center",
+              }}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.postBtnText}>Recite</Text>
+              )}
+            </TouchableOpacity>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -73,40 +177,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
-  modal: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "80%",
-  },
   closeBtn: {
     alignSelf: "flex-end",
-  },
-  originalPost: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  originalPostText: {
-    color: "#444",
-    fontSize: 14,
-  },
-  input: {
-    backgroundColor: "#f9f9f9",
-    padding: 12,
-    borderRadius: 10,
-    height: 100,
-    textAlignVertical: "top",
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  postBtn: {
-    backgroundColor: "#007aff",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
+    marginBottom: 10
   },
   postBtnText: {
     color: "white",

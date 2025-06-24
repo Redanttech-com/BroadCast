@@ -5,6 +5,7 @@ import { useLevel } from "../context/LevelContext";
 import { useTheme } from "../context/ThemeContext";
 import PostScreen from "./PostScreen";
 import { Feather, FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { FloatingAction } from "react-native-floating-action";
 
 export default function CurrentLevelScreen() {
   const { theme } = useTheme();
@@ -16,59 +17,75 @@ export default function CurrentLevelScreen() {
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(30)).current;
 
-  const toggleOptions = () => {
-    if (showOptions) {
-      // Hide animation
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 30,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => setShowOptions(false));
-    } else {
-      setShowOptions(true);
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  };
+  const actions = [
+    {
+      text: "Home",
+      icon: <Ionicons name="earth-outline" size={20} color="#fff" />,
+      name: "home",
+      position: 0,
+      color: "#1F2937",
+      textStyle: { color: "#fff" },
+      textBackground: "#1F2937",
+    },
+    {
+      text: "County",
+      icon: <Feather name="map" size={20} color="#fff" />,
+      name: "county",
+      position: 1,
+      color: "#1F2937",
+      textStyle: { color: "#fff" },
+      textBackground: "#1F2937",
+    },
+    {
+      text: "Constituency",
+      icon: <FontAwesome5 name="flag" size={20} color="#fff" />,
+      name: "constituency",
+      position: 2,
+      color: "#1F2937",
+      textStyle: { color: "#fff" },
+      textBackground: "#1F2937",
+    },
+    {
+      text: "Ward",
+      icon: <FontAwesome5 name="map-pin" size={20} color="#fff" />,
+      name: "ward",
+      position: 3,
+      color: "#1F2937",
+      textStyle: { color: "#fff" },
+      textBackground: "#1F2937",
+    },
+  ];
 
-  const handleLevelChange = (level) => {
-    setIsLoading(true);
-    setCurrentLevel(level);
-    toggleOptions();
+  const handleLevelChange = (name) => {
+    switch (name) {
+      case "home":
+        setCurrentLevel({ type: "home", value: "home" });
+        break;
+      case "county":
+        setCurrentLevel({ type: "county", value: userDetails?.county });
+        break;
+      case "constituency":
+        setCurrentLevel({
+          type: "constituency",
+          value: userDetails?.constituency,
+        });
+        break;
+      case "ward":
+        setCurrentLevel({ type: "ward", value: userDetails?.ward });
+        break;
+    }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <PostScreen level={currentLevel} />
-
-      <FAB
-        icon="pen"
-        style={{
-          position: "absolute",
-          bottom: 30,
-          right: 10,
-          backgroundColor: theme.colors.background,
-          elevation: 5,
-          borderRadius: 50,
-        }}
-        color={theme.colors.text}
-        onPress={toggleOptions}
+      <PostScreen key={`${currentLevel.type}-${currentLevel.value}`} />
+      <FloatingAction
+        actions={actions}
+        onPressItem={handleLevelChange}
+        color={theme.colors.primary}
+        overlayColor="rgba(0,0,0,0.7)"
+        floatingIcon={<Feather name="more-vertical" size={24} color="#fff" />}
+        distanceToEdge={{ vertical: 20, horizontal: 10 }}
       />
 
       {showOptions && (

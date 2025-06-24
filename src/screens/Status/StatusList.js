@@ -13,14 +13,15 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { listenToStatus } from "../../services/firestore";
 import { useUser } from "@clerk/clerk-expo";
-import Video from "react-native-video";
-import { ResizeMode } from "expo-av";
+import { ResizeMode, Video } from "expo-av";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function StatusList() {
   const navigation = useNavigation();
   const { user } = useUser();
   const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme(); // Assuming you have a theme context
 
   useEffect(() => {
     const unsubscribe = listenToStatus(setStatuses, setLoading);
@@ -172,6 +173,7 @@ export default function StatusList() {
                     marginTop: 4,
                     justifyContent: "center",
                     textAlign: "center",
+                    color: theme.colors.text, // Use theme color for text
                   }}
                   numberOfLines={1}
                   ellipsizeMode="tail"

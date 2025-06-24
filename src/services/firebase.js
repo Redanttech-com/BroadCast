@@ -5,13 +5,14 @@ import { getStorage } from "firebase/storage";
 
 // ✅ Your Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyBWVze7w_xsnG7l_VFpjpy4GqWltV8yY7g",
-  authDomain: "deepstate-f3b4b.firebaseapp.com",
-  projectId: "deepstate-f3b4b",
-  storageBucket: "deepstate-f3b4b.appspot.com",
-  messagingSenderId: "666270182752",
-  appId: "1:666270182752:web:6a0a69218499cad0c5c205",
+  apiKey: "AIzaSyDlVU4gg2hDjmxHaLmrU7BwBH0P2oXAMSg",
+  authDomain: "broadcast-ddeb4.firebaseapp.com",
+  projectId: "broadcast-ddeb4",
+  storageBucket: "broadcast-ddeb4.firebasestorage.app",
+  messagingSenderId: "803737868675",
+  appId: "1:803737868675:web:28f8fab8f02aff2021feb6",
 };
+
 
 // ✅ Initialize app
 const app = initializeApp(firebaseConfig);

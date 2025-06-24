@@ -85,7 +85,7 @@ export default function LocationSelectionScreen() {
   ]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
-  const [lname, setlName] = useState(userDetails?.lastname || "");  
+  const [lname, setlName] = useState("");
   const [nName, setnName] = useState("");
   const { user } = useUser();
   const [userDetails, setUserDetails] = useState(null);
@@ -104,7 +104,6 @@ export default function LocationSelectionScreen() {
       setImage(result.assets[0].uri);
     }
   };
-
 
   // Populate counties dropdown
   useEffect(() => {
@@ -213,10 +212,11 @@ export default function LocationSelectionScreen() {
             const userData = querySnapshot.docs[0].data();
             setUserDetails({ ...userData, uid: user.id });
 
-            if (userData?.uid === user.id) resetToDrawer();
+            if (userData?.uid === user.id)
+               resetToDrawer();
           } else {
             setUserDetails(null);
-          //  resetToDrawer(); // fallback nav
+            //  resetToDrawer(); // fallback nav
           }
         }
       } catch (error) {
@@ -228,7 +228,6 @@ export default function LocationSelectionScreen() {
 
     fetchUserDetails();
   }, [user?.id, user?.primaryEmailAddress?.emailAddress]);
-  
 
   const submit = async () => {
     if (loading) return;
@@ -251,25 +250,26 @@ export default function LocationSelectionScreen() {
     try {
       const userSnap = await getDoc(userDocRef);
 
-      // If user profile already exists, redirect immediately
-      if (userSnap.exists()) {
-        Toast.show({
-          type: "info",
-          text1: "Profile already exists. Redirecting...",
-        });
-        resetToDrawer();
-        return;
-      }
+      // // If user profile already exists, redirect immediately
+      // if (userSnap.exists()) {
+      //   Toast.show({
+      //     type: "info",
+      //     text1: "Profile already exists. Redirecting...",
+      //   });
+      //   resetToDrawer();
+      //   return;
+      // }
 
       const userInfo = {
+        uid: user?.id,
         name: name.trim(),
         lastname: lname.trim(),
         nickname: nName.trim(),
         imageUrl: user.imageUrl || "",
-        category: selectedData || "Unknown",
-        county: selectedCounty || "Unknown",
-        constituency: selectedConstituency || "Unknown",
-        ward: selectedWard || "Unknown",
+        category: selectedData || "",
+        county: selectedCounty || "",
+        constituency: selectedConstituency || "",
+        ward: selectedWard || "",
         email: user?.primaryEmailAddress?.emailAddress || "",
         timestamp: serverTimestamp(),
       };
@@ -303,8 +303,6 @@ export default function LocationSelectionScreen() {
       setLoading(false);
     }
   };
-  
-     
 
   return (
     <SafeAreaView

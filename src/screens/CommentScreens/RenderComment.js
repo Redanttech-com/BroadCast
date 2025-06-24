@@ -34,6 +34,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { formatMoment } from "../../utils/formartMoment";
 import { useTheme } from "../../context/ThemeContext";
+import FastImage from "@d11/react-native-fast-image";
 
 export default function RenderComment({ item, id }) {
   const route = useRoute();
@@ -82,13 +83,13 @@ export default function RenderComment({ item, id }) {
     <>
       <View
         style={{
-          // marginBottom: 5,
-          backgroundColor: theme.colors.card,
+          marginBottom: 1,
+          backgroundColor: item.report ? "#1c1c1c" : theme.colors.card,
           borderRadius: 10,
           shadowColor: "#000",
-          shadowOpacity: 0.1,
           shadowRadius: 4,
           elevation: 2,
+          position: "relative",
         }}
       >
         {loading ? (
@@ -126,7 +127,7 @@ export default function RenderComment({ item, id }) {
                   }}
                 >
                   {item.imageUrl && (
-                    <Image
+                    <FastImage
                       source={{
                         uri:
                           typeof item.imageUrl === "string"
@@ -219,7 +220,7 @@ export default function RenderComment({ item, id }) {
                 {item.comment}
               </Text>
               {item.images && (
-                <Image
+                <FastImage
                   source={
                     typeof item.images === "string"
                       ? { uri: item.images }
@@ -291,6 +292,12 @@ export default function RenderComment({ item, id }) {
               </TouchableOpacity>
 
               <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ReciteScreen", {
+                    postId: item.id,
+                    post: item,
+                  })
+                }
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -306,54 +313,6 @@ export default function RenderComment({ item, id }) {
               </TouchableOpacity>
 
               {/* Recite button */}
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("ReciteScreen", {
-                    postId: item.id,
-                    post: item,
-                  })
-                }
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 4,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="comment-quote-outline" // Use 'microphone-outline' if it fits better
-                  size={18}
-                  color={theme.colors.text}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleShare(item.text)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 4,
-                }}
-              >
-                <Feather name="share" size={18} color={theme.colors.text} />
-              </TouchableOpacity>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 4,
-                }}
-              >
-                <Ionicons
-                  name="eye-outline"
-                  size={18}
-                  color={theme.colors.text}
-                />
-                <Text style={{ color: theme.colors.text }}>{item.views}</Text>
-              </View>
             </View>
           </>
         )}

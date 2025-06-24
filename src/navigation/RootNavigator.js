@@ -2,26 +2,27 @@ import React, { useEffect } from "react";
 import { View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useLevel } from "../context/LevelContext";
-
-// Screens
-import FullImageScreen from "../screens/FullImageScreen";
 import OptionScreen from "../screens/OptionScreen";
-import SellForm from "../screens/SellForm";
-import ProductView from "../screens/ProductView";
-import StatusViewScreen from "../screens/StatusViewScreen";
+import StatusViewScreen from "../screens/Status/StatusViewScreen";
 import VerifyEmailScreen from "../screens/VerifyEmailScreen";
-import StatusInput from "../screens/StatusInput";
+import StatusInput from "../screens/Status/StatusInput";
 import ReciteScreen from "../screens/ReciteScreen";
 import DrawerNavigator from "./DrawerNavigator";
 import LocationSelectionScreen from "../screens/LocationSelectionScreen";
 import FollowScreen from "../screens/FollowScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import ProductOptionsScreen from "../screens/ProductOptionsScreen";
+import ProductOptionsScreen from "../screens/MarketScreens/ProductOptionsScreen";
 import { ActivityIndicator } from "react-native-paper";
 import { useTheme } from "../context/ThemeContext";
-import StatusOptions from "../screens/StatusOptions";
+import StatusOptions from "../screens/Status/StatusOptions";
 import UserScreen from "../screens/UserScreen";
 import CommentScreen from "../screens/CommentScreens/CommentScreen";
+import FullMedia from "../screens/FullMedia";
+import SellForm from "../screens/MarketScreens/SellForm";
+import ProductView from "../screens/MarketScreens/ProductView";
+import ChatRoom from "../screens/ChatScreens/ChatRoom";
+import ChatScreen from "../screens/ChatScreens/ChatScreen";
+import MarketScreen from "../screens/MarketScreens/MarketScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -56,8 +57,8 @@ const RootNavigator = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="FullImageScreen"
-            component={FullImageScreen}
+            name="FullMedia"
+            component={FullMedia}
             options={{ headerShown: false, presentation: "modal" }}
           />
           <Stack.Screen
@@ -115,6 +116,15 @@ const RootNavigator = () => {
             }}
           />
           <Stack.Screen
+            name="MarketScreen"
+            component={MarketScreen}
+            options={{
+              presentation: "transparentModal",
+              headerShown: false,
+              animation: "slide_from_bottom",
+            }}
+          />
+          <Stack.Screen
             name="ReciteScreen"
             component={ReciteScreen}
             options={{
@@ -131,6 +141,16 @@ const RootNavigator = () => {
           <Stack.Screen
             name="ProductView"
             component={ProductView}
+            options={{ headerShown: false, presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="ChatScreen"
+            component={ChatScreen}
+            options={{ headerShown: false, presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="ChatRoom"
+            component={ChatRoom}
             options={{ headerShown: false, presentation: "modal" }}
           />
           <Stack.Screen

@@ -14,30 +14,10 @@ import Toast from "react-native-toast-message";
 import { tokenCache } from "./src/utils/tokenCache";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { navigationRef } from "./src/navigation/TabNavigator";
+import { FollowProvider } from "./src/context/FollowContext";
+import { MenuProvider } from "react-native-popup-menu";
 
 SplashScreen.preventAutoHideAsync(); // Keep splash visible until ready
-
-// function MainApp() {
-//   const { isLoaded, isSignedIn } = useAuth();
-
-//   useEffect(() => {
-//     if (isLoaded) {
-//       SplashScreen.hideAsync();
-//     }
-//   }, [isLoaded]);
-
-//   if (!isLoaded) return null; // Wait until Clerk is ready
-
-//   return (
-//     <NavigationContainer>
-//       <StatusBar style="auto" />
-//       {isSignedIn ? <RootNavigator /> : <SignInScreen />}
-//       <Toast config={toastConfig} />
-//     </NavigationContainer>
-//   );
-// }
-
-
 
 function MainApp() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -51,12 +31,12 @@ function MainApp() {
   if (!isLoaded) return null; // Wait until Clerk is ready
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <StatusBar style="auto" />
-      {isSignedIn ? <RootNavigator /> : <SignInScreen />}
-      <Toast config={toastConfig} />
-    </NavigationContainer>
-  );
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        {isSignedIn ? <RootNavigator /> : <SignInScreen />}
+        {/* <Toast config={toastConfig} /> */}
+      </NavigationContainer>
+    );
 }
 
 export default function App() {
@@ -68,9 +48,13 @@ export default function App() {
       >
         <ThemeProvider>
           <LevelProvider>
-            <MediaProvider>
-              <MainApp />
-            </MediaProvider>
+            <FollowProvider>
+              <MediaProvider>
+                <MenuProvider>
+                <MainApp />
+                </MenuProvider>
+              </MediaProvider>
+            </FollowProvider>
           </LevelProvider>
         </ThemeProvider>
       </ClerkProvider>

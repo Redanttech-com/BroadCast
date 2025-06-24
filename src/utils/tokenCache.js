@@ -1,4 +1,4 @@
-// src/utils/token-cache.js
+// tokenCache.js
 import * as SecureStore from "expo-secure-store";
 
 export const tokenCache = {
@@ -6,15 +6,15 @@ export const tokenCache = {
     try {
       return await SecureStore.getItemAsync(key);
     } catch (err) {
-      console.log("Error getting token", err);
+      console.error("Error getting token from cache", err);
       return null;
     }
   },
   async saveToken(key, value) {
     try {
-      return await SecureStore.setItemAsync(key, value);
+      await SecureStore.setItemAsync(key, value);
     } catch (err) {
-      console.log("Error saving token", err);
+      console.error("Error saving token to cache", err);
     }
   },
 };

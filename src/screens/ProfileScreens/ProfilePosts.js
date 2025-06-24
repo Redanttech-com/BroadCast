@@ -15,6 +15,7 @@ import { Video } from "expo-av";
 import { useTheme } from "../../context/ThemeContext";
 import { db } from "../../services/firebase";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import FastImage from "@d11/react-native-fast-image";
 
 const screenWidth = Dimensions.get("window").width;
 const isSmallScreen = screenWidth < 360;
@@ -83,7 +84,7 @@ export default function ProfilePosts() {
             isMuted
           />
         ) : (
-          <Image
+          <FastImage
             source={{ uri: mediaUri }}
             style={{ width: "100%", height: "100%" }}
             resizeMode="cover"
@@ -123,7 +124,7 @@ export default function ProfilePosts() {
             onPress={() => setSelectedItem(null)}
           >
             {selectedItem.images ? (
-              <Image
+              <FastImage
                 source={{ uri: selectedItem.images }}
                 style={{
                   width: "90%",

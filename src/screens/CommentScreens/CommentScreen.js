@@ -31,6 +31,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import FastImage from "@d11/react-native-fast-image";
 
 export default function CommentScreen() {
   const { theme } = useTheme();
@@ -186,7 +187,10 @@ export default function CommentScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      edges={["bottom","left","right"]}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -202,17 +206,17 @@ export default function CommentScreen() {
           nestedScrollEnabled
           contentContainerStyle={{ paddingBottom: 20 }} // add padding for the input field
           ListHeaderComponent={
-            <View className="w-full flex-row justify-center items-center mb-4 mt-10 px-4">
+            <View className="w-full flex-row justify-center items-center mt-10 mb-4  px-4">
               <Text
                 style={{
                   color: theme.colors.text,
                   fontWeight: "bold",
-                  fontSize: 20,
+                  fontSize: 18,
                   flex: 1,
                   textAlign: "center",
                 }}
               >
-                comments ({comments.length})
+                Comments ({comments.length})
               </Text>
               <TouchableOpacity onPress={() => navigation.goBack()}>
                 <Ionicons name="close" size={32} color={theme.colors.text} />
@@ -233,7 +237,7 @@ export default function CommentScreen() {
               justifyContent: "center",
             }}
           >
-            <Image
+            <FastImage
               source={{ uri: selectedImage }}
               style={{
                 width: 100,
@@ -258,7 +262,7 @@ export default function CommentScreen() {
             borderColor: "#ccc",
             paddingHorizontal: 12,
             paddingVertical: 8,
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.colors.background,            
           }}
         >
           <Pressable

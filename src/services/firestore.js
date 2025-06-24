@@ -124,8 +124,6 @@ export const listenToCommentCount = (postId, callback) => {
   }
 };
 
-
-
 export const listenToMarketPosts = (userId, callback) => {
   const postsRef = collection(db, "market");
 
@@ -198,50 +196,78 @@ export const deletePostAfter24Hours = async (postId) => {
   }
 };
 
-export const listenToMediaPosts = (currentLevel, setMediaPosts) => {
-  if (!currentLevel?.type || !currentLevel?.value) {
-    console.warn("Invalid current level provided to listenToMediaPosts");
-    return () => {};
+const getPostsQuery = (level, levelId) => {
+  const baseRef = collection(db, "posts");
+
+  const filters = [];
+  if (level === "county") {
+    filters.push(where("location.county", "==", levelId));
+  } else if (level === "constituency") {
+    filters.push(where("location.constituency", "==", levelId));
+  } else if (level === "ward") {
+    filters.push(where("location.ward", "==", levelId));
   }
 
-  const postsRef = collection(
-    db,
-    currentLevel.type,
-    currentLevel.value,
-    "posts"
-  );
-
-  const unsubscribe = onSnapshot(
-    postsRef,
-    (snapshot) => {
-      const mediaOnly = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((post) => {
-          const hasImages =
-            (Array.isArray(post.images) && post.images.length > 0) ||
-            typeof post.images === "string";
-          const hasVideo =
-            typeof post.video === "string" || typeof post.videos === "string";
-          return hasImages || hasVideo;
-        })
-        .sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() || 0;
-          const bTime = b.createdAt?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-
-      setMediaPosts(mediaOnly);
-    },
-    (error) => {
-      console.error("Error listening to media posts:", error);
-    }
-  );
-
-  return unsubscribe;
+  return query(baseRef, ...filters, orderBy("createdAt", "desc"));
 };
 
+// 🔥 Main listener function
+// export const listenToMediaPosts = (
+//   currentLevel,
+//   setMediaPosts,
+//   setLoading = () => {}
+// ) => {
+//   const { level, county, constituency, ward } = currentLevel;
+//   const levelId = ward || constituency || county || null;
+
+//   const postsQuery = getPostsQuery(level, levelId);
+
+//   const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
+//     const allPosts = snapshot.docs.map((doc) => ({
+//       id: doc.id,
+//       ...doc.data(),
+//     }));
+
+//     // 🔁 Normalize media into a consistent `media[]` array
+//     const mediaOnly = allPosts
+//       .map((post) => {
+//         const media = [];
+
+//         if (Array.isArray(post.images)) {
+//           media.push(...post.images.map((url) => ({ type: "image", url })));
+//         } else if (typeof post.images === "string") {
+//           media.push({ type: "image", url: post.images });
+//         }
+
+//         if (typeof post.video === "string") {
+//           media.push({ type: "video", url: post.video });
+//         }
+
+//         if (typeof post.videos === "string") {
+//           media.push({ type: "video", url: post.videos });
+//         }
+
+//         return {
+//           ...post,
+//           media,
+//         };
+//       })
+//       .filter((post) => post.media && post.media.length > 0)
+//       .sort((a, b) => {
+//         const aTime = a.createdAt?.toMillis?.() || 0;
+//         const bTime = b.createdAt?.toMillis?.() || 0;
+//         return bTime - aTime;
+//       });
+
+//     setMediaPosts(mediaOnly);
+//     setLoading(false);
+//   });
+
+//   return unsubscribe;
+// };
+
 export const listenToMembersById = (setMembers) => {
-  const postsRef = collection(db, "userPosts");
+  const postsRef = collection(db, "users");
 
   // Start listening for real-time updates
   const unsubscribe = onSnapshot(postsRef, (snapshot) => {
@@ -280,19 +306,19 @@ export const unfollowUser = async (currentUserId, targetUserId) => {
 // Check if current user is following another
 export const checkIfFollowing = async (currentUserId, targetUserId) => {
   const docSnap = await getDoc(
-    doc(db, "userPosts", currentUserId, "following", targetUserId)
+    doc(db, "users", currentUserId, "following", targetUserId)
   );
   return docSnap.exists();
 };
 
 export const getFollowers = async (userId) => {
-  const followersRef = collection(db, "userPosts", userId, "followers");
+  const followersRef = collection(db, "users", userId, "followers");
   const snapshot = await getDocs(followersRef);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
 
 export const getFollowing = async (userId) => {
-  const followingRef = collection(db, "userPosts", userId, "following");
+  const followingRef = collection(db, "users", userId, "following");
   const snapshot = await getDocs(followingRef);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };

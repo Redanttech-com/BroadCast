@@ -17,7 +17,8 @@ import Toast from "react-native-toast-message";
 const MediaContext = createContext();
 
 export const MediaProvider = ({ children }) => {
-  const [media, setMedia] = useState({ uri: null, type: null });
+  const [media, setMedia] = useState([]);
+  const [marketmedia, setMarketMedia] = useState([]);
   const { currentLevel, userDetails } = useLevel();
   const { user } = useUser();
   const [input, setInput] = useState("");
@@ -40,68 +41,88 @@ export const MediaProvider = ({ children }) => {
       } else {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.All,
-          allowsEditing: true,
           quality: 1,
-          //  allowsMultipleSelection: true,
+          allowsMultipleSelection: true,
         });
       }
 
       if (!result.canceled) {
-        const pickedType =
-          result.assets[0].type === "video" ? "Videos" : "Images";
-        const pickedUri = result.assets[0].uri;
-
-        setMedia({ uri: pickedUri, type: pickedType });
-
-        await saveMedia(pickedUri);
+        const selected = result.assets || [];
+        setMedia((prev) => [
+          ...prev,
+          ...selected.map((asset) => ({
+            uri: asset.uri,
+            type: asset.type.startsWith("video") ? "video" : "image",
+          })),
+        ]);
       }
     } catch (error) {
       //  console.error("Media picking failed:", error);
     }
   }, []);
 
-  const saveMedia = async (uri) => {
+  const pickMarketMedia = useCallback(async (source) => {
+    let result;
     try {
-      const fileName = uri.split("/").pop();
-      const destinationUri = `${FileSystem.documentDirectory}${fileName}`;
+      if (source === "camera") {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          allowsEditing: true,
+          quality: 1,
+          //  allowsMultipleSelection: true,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          quality: 1,
+          allowsMultipleSelection: true,
+        });
+      }
 
-      await FileSystem.copyAsync({
-        from: uri,
-        to: destinationUri,
-      });
-
-      //  console.log("Media saved at:", destinationUri);
+      if (!result.canceled) {
+        const selected = result.assets || [];
+        setMarketMedia((prev) => [
+          ...prev,
+          ...selected.map((asset) => ({
+            uri: asset.uri,
+            type: asset.type.startsWith("video") ? "video" : "image",
+          })),
+        ]);
+      }
     } catch (error) {
-      console.error("Error saving media:", error);
+      //  console.error("Media picking failed:", error);
     }
-  };
+  }, []);
 
   const uploadMedia = async (
     docRefId,
     currentLevel,
     collectionName = "posts"
   ) => {
-    if (!media?.uri || !media?.type) {
-      //   console.error("No media URI or type found", media); // Debugging log
-      return null; // Prevent upload if no media is selected
-    }
+    if (!media || media.length === 0) return null;
 
     try {
-      const blob = await (await fetch(media.uri)).blob();
-      //   console.log("Blob created:", blob);
+      const uploadedUrls = [];
 
-      // Example storage path: "county/abc123/Images" or "market/abc123/Videos"
-      const mediaRef = ref(
-        storage,
-        `BroadCastImages/${docRefId}/${media.type}`
-      );
-      //  console.log("Uploading to:", mediaRef.fullPath);
+      for (const item of media) {
+        const blob = await (await fetch(item.uri)).blob();
+        const fileName = item.uri.split("/").pop();
 
-      await uploadBytes(mediaRef, blob);
-      const downloadUrl = await getDownloadURL(mediaRef);
-      // console.log("Download URL:", downloadUrl);
+        const mediaRef = ref(
+          storage,
+          `BroadCastImages/${docRefId}/${fileName}` // use unique file name
+        );
 
-      // Firestore document path
+        await uploadBytes(mediaRef, blob);
+        const downloadUrl = await getDownloadURL(mediaRef);
+
+        uploadedUrls.push({
+          type: item.type.toLowerCase(),
+          url: downloadUrl,
+        });
+      }
+
+      // Save the array of media in a `media` field
       const docRef = doc(
         db,
         currentLevel.type,
@@ -111,10 +132,10 @@ export const MediaProvider = ({ children }) => {
       );
 
       await updateDoc(docRef, {
-        [media?.type.toLowerCase()]: downloadUrl, // Store media URL in the correct field
+        media: uploadedUrls,
       });
 
-      return downloadUrl;
+      return uploadedUrls;
     } catch (error) {
       console.error("Error uploading media:", error);
       return null;
@@ -122,34 +143,37 @@ export const MediaProvider = ({ children }) => {
   };
 
   const uploadMarketMedia = async (docRefId, collectionName = "market") => {
-    if (!media?.uri || !media?.type) {
-      console.error("No media URI or type found", media); // Debugging log
-      return null; // Prevent upload if no media is selected
-    }
+    if (!marketmedia || marketmedia.length === 0) return null;
 
     try {
-      const blob = await (await fetch(media.uri)).blob();
-      //  console.log("Blob created:", blob);
+      const uploadedUrls = [];
 
-      // Example storage path: "county/abc123/Images" or "market/abc123/Videos"
-      const mediaRef = ref(
-        storage,
-        `BroadCastImages/${docRefId}/${media.type}`
-      );
-      // console.log("Uploading to:", mediaRef.fullPath);
+      for (const item of marketmedia) {
+        const blob = await (await fetch(item.uri)).blob();
+        const fileName = item.uri.split("/").pop();
 
-      await uploadBytes(mediaRef, blob);
-      const downloadUrl = await getDownloadURL(mediaRef);
-      //  console.log("Download URL:", downloadUrl);
+        const mediaRef = ref(
+          storage,
+          `MarketImages/${docRefId}/${fileName}` // use unique file name
+        );
 
-      // Firestore document path
+        await uploadBytes(mediaRef, blob);
+        const downloadUrl = await getDownloadURL(mediaRef);
+
+        uploadedUrls.push({
+          type: item.type.toLowerCase(),
+          url: downloadUrl,
+        });
+      }
+
+      // Save the array of media in a `media` field
       const docRef = doc(db, collectionName, docRefId);
 
       await updateDoc(docRef, {
-        [media?.type.toLowerCase()]: downloadUrl, // Store media URL in the correct field
+        media: uploadedUrls,
       });
 
-      return downloadUrl;
+      return uploadedUrls;
     } catch (error) {
       console.error("Error uploading media:", error);
       return null;
@@ -192,17 +216,24 @@ export const MediaProvider = ({ children }) => {
       );
 
       // Log postRef and docRefId to verify they are set correctly
-    //  console.log("postRef:", postRef); // log the entire object
+      //  console.log("postRef:", postRef); // log the entire object
       const docRefId = postRef.id;
-     // console.log("docRefId:", docRefId); // log the id
+      // console.log("docRefId:", docRefId); // log the id
 
-      if (media?.uri) {
-        const uploadedUrl = await uploadMedia(docRefId, currentLevel); // Pass docRefId here
-     //   console.log("Media uploaded to:", uploadedUrl);
+      if (media.length > 0) {
+        for (const m of media) {
+          const uploadedUrl = await uploadMedia(
+            docRefId,
+            currentLevel,
+            "posts",
+            m
+          );
+        }
       }
 
       setInput("");
       clearMedia(); // Clear media after sending post
+      setMedia([]);
       Toast.show({
         type: "update",
         text1: "Cast uploaded successfully",
@@ -224,7 +255,7 @@ export const MediaProvider = ({ children }) => {
         !cost ||
         !description ||
         !selectData ||
-        !media ||
+        !marketmedia ||
         !user ||
         !userDetails
       ) {
@@ -236,16 +267,17 @@ export const MediaProvider = ({ children }) => {
       // Create a new post document reference
       const postRef = await addDoc(collection(db, "market"), {
         uid: user?.id,
-        email: userDetails?.email,
+        email: userDetails?.email || "",
         productname: productname,
         cost: cost,
         timestamp: serverTimestamp(),
         name: userDetails?.name,
         userImg: userDetails?.userImg || null,
-        lastname: userDetails?.lastname,
-        nickname: userDetails?.nickname,
+        lastname: userDetails?.lastname || "",
+        nickname: userDetails?.nickname || "",
         category: selectData,
         description: description,
+        imageUrl: user?.imageUrl || "",
       });
 
       // Log postRef and docRefId to verify they are set correctly
@@ -253,17 +285,22 @@ export const MediaProvider = ({ children }) => {
       const docRefId = postRef.id;
       // console.log("docRefId:", docRefId); // log the id
 
-      if (media?.uri) {
-        const uploadedUrl = await uploadMarketMedia(docRefId); // Pass docRefId here
-        //    console.log("Media uploaded to:", uploadedUrl);
+      if (marketmedia.length > 0) {
+        for (const m of marketmedia) {
+          const uploadedUrl = await uploadMarketMedia(docRefId, "market", m);
+        }
       }
-      Toast.show({ type: "success", text1: "success." });
 
+      Toast.show({ type: "success", text1: "success." });
+      // navigation.navigate("MarketScreen");
+
+      // Reset
       setCost("");
       setDescription("");
       setProductName("");
       setSelectData("");
-      clearMedia(); // Clear media after sending post
+      setMarketMedia([]);
+      clearMarketMedia(); // Clear media after sending post
     } catch (error) {
       //  console.error("Failed to send post:", error);
       Toast.show({ type: "error", text1: "Something went wrong." });
@@ -272,18 +309,27 @@ export const MediaProvider = ({ children }) => {
     }
   };
 
-  const clearMedia = () => setMedia({ uri: null, type: null });
+  const clearMedia = (index) => {
+    setMedia((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearMarketMedia = (index) => {
+    setMarketMedia((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <MediaContext.Provider
       value={{
         media,
-
+        marketmedia,
         clearMedia,
         sendPost,
         input,
+        setMarketMedia,
+        clearMarketMedia,
         setInput,
         pickMedia,
+        pickMarketMedia,
         loading,
         sendMarketPost,
         productname,

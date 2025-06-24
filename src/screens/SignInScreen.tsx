@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { use, useCallback, useEffect, useRef } from "react";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { useSSO } from "@clerk/clerk-expo";
+import { useSSO, useUser } from "@clerk/clerk-expo";
 import {
   Text,
   TextInput,
@@ -18,6 +18,10 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
+import FastImage from "@d11/react-native-fast-image";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../services/firebase";
+import { resetToDrawer } from "../navigation/TabNavigator";
 
 export const useWarmUpBrowser = () => {
   useEffect(() => {
@@ -170,6 +174,10 @@ export default function Page() {
   }, []);
 
   const { theme } = useTheme();
+  const user = useUser();
+
+ 
+  
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -203,8 +211,8 @@ export default function Page() {
           >
             Sign Up to Broadcast
           </Text>
-          <Image
-            source={require("../assets/brLogo.jpg")}
+          <FastImage
+            source={require("../assets/icon.jpg")}
             className="h-10 w-10 rounded-full ml-3"
           />
         </View>
