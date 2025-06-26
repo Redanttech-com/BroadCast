@@ -64,6 +64,8 @@ export default function ReciteScreen() {
             }
           );
           setCiteInput("");
+          navigation.goBack();
+
         } catch (error) {
           console.error("Error reposting the cast:", error);
         }

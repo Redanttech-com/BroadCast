@@ -23,7 +23,7 @@ export default function HeaderComponent() {
         }`;
 
   return (
-    <View className="shadow-sm mt-14">
+    <View className="shadow-sm mt-10">
       <View className="w-full justify-center items-center">
         <Text
           style={{ color: theme.colors.text, fontWeight: "bold", fontSize: 20 }}

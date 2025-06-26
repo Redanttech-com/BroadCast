@@ -16,6 +16,7 @@ import RootNavigator from "./src/navigation/RootNavigator";
 import { navigationRef } from "./src/navigation/TabNavigator";
 import { FollowProvider } from "./src/context/FollowContext";
 import { MenuProvider } from "react-native-popup-menu";
+import { SeenStatusProvider } from "./src/context/SeenStatusContext";
 
 SplashScreen.preventAutoHideAsync(); // Keep splash visible until ready
 
@@ -51,7 +52,9 @@ export default function App() {
             <FollowProvider>
               <MediaProvider>
                 <MenuProvider>
+                <SeenStatusProvider>
                 <MainApp />
+                </SeenStatusProvider>
                 </MenuProvider>
               </MediaProvider>
             </FollowProvider>

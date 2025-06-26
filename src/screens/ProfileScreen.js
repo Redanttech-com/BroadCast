@@ -133,13 +133,14 @@ export default function ProfileScreen() {
               }}
               height={80}
               width={80}
-              style={{ borderRadius: 40, marginLeft: 40 }}
+              style={{ borderRadius: 40, marginLeft: 20 }}
             />
             <Text
               style={{
                 textAlign: "center",
                 color: theme.colors.primary,
                 fontSize: 12,
+                marginLeft: 20,
               }}
             >
               Change Photo

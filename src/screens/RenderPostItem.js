@@ -50,26 +50,7 @@ export default function RenderPostItem({ item, id }) {
   const [loading, setLoading] = useState(true);
   const videoRef = useRef(null);
   const { width: screenWidth } = Dimensions.get("window");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const toggleMute = () => setMuted((prev) => !prev);
 
-  const handlePress = () => {
-    const media = Array.isArray(item.media)
-      ? item.media.map((m) => ({
-          type: m.image ? "image" : "video",
-          uri: m.image || m.video,
-        }))
-      : item.media && item.media.image
-      ? [{ type: "image", uri: item.media.image }]
-      : item.media && item.media.video
-      ? [{ type: "video", uri: item.media.video }]
-      : [];
-
-    navigation.navigate("FullImageScreen", {
-      media,
-      text: item.text,
-    });
-  };
 
   useEffect(() => {
     if (!id) return;
@@ -148,6 +129,8 @@ export default function RenderPostItem({ item, id }) {
       setLoading(false);
     }
   };
+
+
 
   useEffect(() => {
     if (item?.type === "video") {
@@ -307,9 +290,29 @@ export default function RenderPostItem({ item, id }) {
           })
         }
       >
+        {item.citeInput && (
+          <View
+            style={{
+              margin: 8,
+              paddingHorizontal: 10,
+              backgroundColor: theme.colors.background,
+              borderRadius: 5,
+            }}
+          >
+            <Text
+              style={{
+                margin: 8,
+                paddingHorizontal: 10,
+                color: theme.colors.text,
+              }}
+              numberOfLines={4}
+            >
+              {item.citeInput}
+            </Text>
+          </View>
+        )}
         <Text
           style={{
-            marginTop: 8,
             marginBottom: 10,
             paddingHorizontal: 10,
             color: theme.colors.text,
@@ -365,19 +368,19 @@ export default function RenderPostItem({ item, id }) {
                         repeat={true}
                         paused={false}
                       />
-                      <Ionicons
+                 
+                <Ionicons
                         name="play-circle-outline"
                         size={64}
                         color="white"
-                        onPress={toggleMute}
                         style={{
                           position: "absolute",
                           top: "50%",
                           left: "50%",
                           transform: [{ translateX: -32 }, { translateY: -32 }],
-                          zIndex: 10,
                         }}
                       />
+                      
                     </>
                   )}
                 </View>
@@ -447,7 +450,6 @@ export default function RenderPostItem({ item, id }) {
                   name="play-circle-outline"
                   size={64}
                   color="white"
-                  onPress={toggleMute}
                   style={{
                     position: "absolute",
                     top: "50%",
@@ -461,7 +463,9 @@ export default function RenderPostItem({ item, id }) {
           </View>
         </Pressable>
       ) : null}
-
+      {item.fromUser && (
+        <Text style={{ color: "gray" }}>recited from @{item.fromlastname}</Text>
+      )}
       {/* Interaction Buttons */}
       <View className="flex-row items-center gap-6 p-2 justify-center ">
         <TouchableOpacity style={styles.container} onPress={likePost}>

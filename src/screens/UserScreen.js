@@ -15,6 +15,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useFollow } from "../context/FollowContext";
 import { getDownloadURL } from "firebase/storage";
 import { Ionicons } from "@expo/vector-icons";
+import UserScreenTabs from "./userScreenTabs";
 
 export default function ProfileScreen() {
   const { user } = useUser();
@@ -188,7 +189,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </View>
-      <ProfileTabs />
+      <UserScreenTabs />
     </View>
   );
 }

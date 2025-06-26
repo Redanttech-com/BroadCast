@@ -16,19 +16,21 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../services/firebase";
+import { db, storage } from "../services/firebase";
 import { useLevel } from "../context/LevelContext";
 import { useUser } from "@clerk/clerk-expo";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
+import { deleteObject, ref } from "firebase/storage";
 
 const OptionScreen = ({ route }) => {
-  const { pstId, post, userId } = route.params || {};
+  const { pstId, post, postId, userId, commentUid, commentId } = route.params || {};
   const [isBookmarked, setIsBookmarked] = useState({});
   const [isReported, setIsReported] = useState({});
   const [isBookMarkVisible, setIsBookMarkVisible] = useState(false);
@@ -169,12 +171,88 @@ const OptionScreen = ({ route }) => {
     }
   };
 
+
+  const deleteComment = async (postId, commentId) => {
+    if (!postId || !commentId) {
+      console.log("❌ Missing postId or commentId", { postId, commentId });
+      return;
+    }
+
+    try {
+      const commentRef = doc(db, "comments", postId, "comments", commentId);
+      const commentSnap = await getDoc(commentRef);
+
+      if (!commentSnap.exists()) {
+        console.log("❌ Comment not found.");
+        return;
+      }
+
+      const data = commentSnap.data();
+
+      // ✅ Handle both single object or array media
+      const mediaItems = Array.isArray(data.media)
+        ? data.media
+        : data.media && typeof data.media === "object"
+        ? [data.media]
+        : [];
+
+        for (const media of mediaItems) {
+          const mediaUrl = media?.url;
+
+          if (typeof mediaUrl === "string" && mediaUrl.includes("/o/")) {
+            const pathStartIndex = mediaUrl.indexOf("/o/") + 3;
+            const pathEndIndex = mediaUrl.indexOf("?");
+            const fullPathEncoded = mediaUrl.substring(
+              pathStartIndex,
+              pathEndIndex
+            );
+            const fullPath = decodeURIComponent(fullPathEncoded);
+            const mediaRef = ref(storage, fullPath);
+
+            try {
+              await deleteObject(mediaRef);
+              console.log("✅ Deleted media:", fullPath);
+            } catch (err) {
+              console.error("⚠️ Error deleting media:", err);
+            }
+          } else {
+            console.warn("⚠️ Skipping invalid or missing media URL:", mediaUrl);
+          }
+        }
+        
+
+      // ✅ Delete all likes under the comment
+      const likesSnapshot = await getDocs(
+        collection(db, "comments", commentId, "likes")
+      );
+      
+      const likeDeletions = likesSnapshot.docs.map((docSnap) =>
+        deleteDoc(docSnap.ref)
+      );
+      await Promise.all(likeDeletions);
+      setDeleteModalVisible(false);
+      navigation.goBack();
+      console.log("✅ Deleted all likes for the comment");
+
+      // ✅ Delete the comment itself
+      await deleteDoc(commentRef);
+      console.log("✅ Comment and its media deleted successfully.");
+    } catch (error) {
+      console.error("❌ Error deleting comment:", error);
+    }
+  };
+  
+
   useEffect(() => {
     checkBookmark();
     checkReport();
   }, [pstId, userId]);
 
   const handleDelete = async () => {
+    if(!pstId || !currentLevel) {
+      console.log("missing documents");
+      return;
+    }
     try {
       const docRef = doc(
         db,
@@ -183,7 +261,49 @@ const OptionScreen = ({ route }) => {
         "posts",
         pstId
       );
+
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        Toast.show({ type: "warn", text1: "Post not found" });
+        return;
+      }
+
+      const data = docSnap.data();
+
+      // Optional: delete media files from storage
+      const mediaItems = Array.isArray(data.media)
+        ? data.media
+        : data.media && typeof data.media === "object"
+        ? [data.media]
+        : [];
+
+      for (const media of mediaItems) {
+        const mediaUrl = media?.url;
+
+        if (typeof mediaUrl === "string" && mediaUrl.includes("/o/")) {
+          const pathStartIndex = mediaUrl.indexOf("/o/") + 3;
+          const pathEndIndex = mediaUrl.indexOf("?");
+          const fullPathEncoded = mediaUrl.substring(
+            pathStartIndex,
+            pathEndIndex
+          );
+          const fullPath = decodeURIComponent(fullPathEncoded);
+          const mediaRef = ref(storage, fullPath);
+
+          try {
+            await deleteObject(mediaRef);
+            console.log("✅ Deleted media:", fullPath);
+          } catch (err) {
+            console.error("⚠️ Error deleting media:", err);
+          }
+        } else {
+          console.warn("⚠️ Invalid media URL, skipping:", mediaUrl);
+        }
+      }
+
+      // Now delete the post document
       await deleteDoc(docRef);
+
       Toast.show({
         type: "success",
         text1: "Post deleted successfully",
@@ -191,7 +311,7 @@ const OptionScreen = ({ route }) => {
       setDeleteModalVisible(false);
       navigation.goBack();
     } catch (error) {
-      console.error("Failed to delete post:", error);
+      console.error("Failed to delete post:", error.message);
       Toast.show({
         type: "warn",
         text1: "Failed to delete post",
@@ -199,6 +319,7 @@ const OptionScreen = ({ route }) => {
       setDeleteModalVisible(false);
     }
   };
+  
 
   const OptionButton = ({
     icon,
@@ -287,6 +408,23 @@ const OptionScreen = ({ route }) => {
             />
 
             {user.id === userId && (
+              <>
+                <OptionButton
+                  icon={
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={24}
+                      color="red"
+                    />
+                  }
+                  label="Delete Cast"
+                  onPress={() => setDeleteModalVisible(true)}
+                  iconColor="red"
+                  textColor="red"
+                />
+              </>
+            )}
+            {user.id === commentUid && (
               <>
                 <OptionButton
                   icon={
@@ -519,7 +657,10 @@ const OptionScreen = ({ route }) => {
                       <Text style={{ fontSize: 16 }}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={handleDelete}
+                      onPress={() => {
+                        handleDelete();
+                        deleteComment(postId, commentId);
+                      }}
                       style={{
                         paddingVertical: 10,
                         paddingHorizontal: 20,

@@ -1,11 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   Ionicons,
@@ -15,42 +9,32 @@ import {
 } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native-paper";
 import { useLevel } from "../../context/LevelContext";
-import { db, storage } from "../../services/firebase"; // Firebase config
-
+import { db } from "../../services/firebase";
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
-  getDocs,
+  getDoc,
   onSnapshot,
-  query,
-  serverTimestamp,
   setDoc,
-  updateDoc,
-  where,
 } from "firebase/firestore";
 import { useUser } from "@clerk/clerk-expo";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { formatMoment } from "../../utils/formartMoment";
 import { useTheme } from "../../context/ThemeContext";
 import FastImage from "@d11/react-native-fast-image";
+import { formatCount } from "../../utils/format";
+import Video from "react-native-video";
 
 export default function RenderComment({ item, id }) {
-  const route = useRoute();
-
   const { user } = useUser();
-  const [posts, setPosts] = useState([]);
-  const [loadingComments, setLoadingComments] = useState(false);
-  // const [userDetails, setUserDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
-
+  const { theme } = useTheme();
   const navigation = useNavigation();
-  const [comments, setComments] = useState([]);
-  const flashListRef = useRef(null);
+  const [loading, setLoading] = useState(false);
   const [likes, setLikes] = useState([]);
   const [hasLiked, setHasLiked] = useState(false);
-  const { theme } = useTheme();
+  const toggleMute = () => setMuted((prev) => !prev);
+  const route = useRoute();
+  const { postId } = route.params;
 
   useEffect(() => {
     if (!id) return;
@@ -60,276 +44,209 @@ export default function RenderComment({ item, id }) {
       (snapshot) => setLikes(snapshot.docs)
     );
 
-    return () => unsubscribe(); // ✅ cleanup on unmount or id change
+    return () => unsubscribe();
   }, [id]);
 
   useEffect(() => {
     setHasLiked(likes.findIndex((like) => like.id === user?.id) !== -1);
   }, [likes]);
 
-  async function likeComment() {
-    if (user?.id) {
-      if (hasLiked) {
-        await deleteDoc(doc(db, "comments", id, "likes", user.id));
-      } else {
-        await setDoc(doc(db, "comments", id, "likes", user?.id), {
-          uid: user?.id,
-        });
-      }
+  const likeComment = async () => {
+    if (!user?.id) return;
+    if (hasLiked) {
+      await deleteDoc(doc(db, "comments", id, "likes", user.id));
+    } else {
+      await setDoc(doc(db, "comments", id, "likes", user.id), {
+        uid: user.id,
+      });
     }
-  }
+  };
 
   return (
-    <>
-      <View
-        style={{
-          marginBottom: 1,
-          backgroundColor: item.report ? "#1c1c1c" : theme.colors.card,
-          borderRadius: 10,
-          shadowColor: "#000",
-          shadowRadius: 4,
-          elevation: 2,
-          position: "relative",
-        }}
-      >
-        {loading ? (
-          <View style={{ alignItems: "center" }}>
-            <ActivityIndicator size="small" color={theme.colors.text} />
-          </View>
-        ) : (
-          <>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: 10,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("UserScreen", {
-                    name: item.name,
-                    image: item.imageUrl,
-                  })
-                }
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  flex: 1,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  {item.imageUrl && (
-                    <FastImage
-                      source={{
-                        uri:
-                          typeof item.imageUrl === "string"
-                            ? item.imageUrl
-                            : item.imageUrl?.toString(),
-                      }}
-                      style={{
-                        height: 40,
-                        width: 40,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                      }}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <Text
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 10,
-                      color: theme.colors.text,
-                      fontSize: 12,
-                    }}
-                  >
-                    {item.name}
-                  </Text>
-                  <Text
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 10,
-                      color: theme.colors.text,
-                      fontSize: 12,
-                    }}
-                  >
-                    {item.lastname}
-                  </Text>
-                  <Text
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 10,
-                      color: theme.colors.primary,
-                      fontSize: 12,
-                    }}
-                  >
-                    @{item.nickname}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <View className="mr-2">
-                <Text style={{ color: theme.colors.text }}>
-                  {formatMoment(item?.timestamp)}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={{ flexDirection: "row", gap: 10 }}
-                onPress={() =>
-                  navigation.navigate("OptionScreen", {
-                    postId: item.id,
-                    post: item,
-                  })
-                }
-              >
-                <Feather
-                  name="more-vertical"
-                  size={24}
-                  color="gray"
-                  style={{
-                    padding: 4,
-                    borderRadius: 50,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
+    <View
+      style={{
+        marginBottom: 2,
+        backgroundColor: item.report ? "#1c1c1c" : theme.colors.card,
+        borderRadius: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 3,
+        padding: 10,
+      }}
+    >
+      {loading ? (
+        <View style={{ alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.colors.text} />
+        </View>
+      ) : (
+        <>
+          {/* Header Row */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate("FullImageScreen", {
-                  image: item.images,
-                  text: item.comment,
+                navigation.navigate("UserScreen", {
+                  name: item.name,
+                  image: item.imageUrl,
+                })
+              }
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
+              <FastImage
+                source={{ uri: item?.imageUrl || item?.userImg }}
+                style={{
+                  height: 40,
+                  width: 40,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                }}
+                resizeMode="cover"
+              />
+              <View style={{ marginLeft: 8 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 12 }}>
+                  {item.name} {item.lastname}
+                </Text>
+                <Text style={{ color: theme.colors.primary, fontSize: 12 }}>
+                  @{item.nickname}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <Text
+              style={{ color: theme.colors.text, fontSize: 10, marginRight: 6 }}
+            >
+              {formatMoment(item?.timestamp)}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("OptionScreen", {
+                  postId: postId,
+                  commentId: id,
+                  post: item,
+                  commentUid: item.uid,
                 })
               }
             >
+              <Feather name="more-vertical" size={20} color="gray" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Comment Text + Like Button Row */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 8,
+              marginBottom: 10,
+            }}
+          >
+            {item.comment && (
               <Text
                 style={{
-                  marginTop: 8,
-                  marginBottom: 10,
-                  marginHorizontal: 10,
                   color: theme.colors.text,
+                  fontSize: 14,
+                  flex: 1,
+                  flexWrap: "wrap",
+                  marginRight: 8,
                 }}
               >
                 {item.comment}
               </Text>
-              {item.images && (
-                <FastImage
-                  source={
-                    typeof item.images === "string"
-                      ? { uri: item.images }
-                      : item.images
-                  }
-                  style={{
-                    width: "100%",
-                    height: 200,
-                    borderRadius: 8,
-                  }}
-                  resizeMode="cover"
-                />
-              )}
-              {item.video && (
-                <View
-                  style={{
-                    width: "100%",
-                    height: 200,
-                    borderRadius: 8,
-                    overflow: "hidden",
-                  }}
-                >
-                  <Video
-                    source={{ uri: item.video }}
-                    resizeMode="cover"
-                    shouldPlay={false}
-                    isMuted={item.muted}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                  <TouchableOpacity
-                    onPress={() => toggleMute(item.id)}
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      backgroundColor: "blue",
-                      padding: 5,
-                      borderRadius: 50,
-                    }}
-                  >
-                    <Ionicons
-                      name={item.muted ? "volume-mute" : "volume-high"}
-                      size={24}
-                      color={{ color: theme.colors.text }}
-                    />
-                  </TouchableOpacity>
-                </View>
+            )}
+
+            <TouchableOpacity style={styles.likeButton} onPress={likeComment}>
+              <AntDesign
+                name="heart"
+                size={18}
+                color={hasLiked ? "red" : theme.colors.text}
+              />
+              {likes.length > 0 && (
+                <Text style={[styles.likeCount, { color: theme.colors.text }]}>
+                  {formatCount(likes.length)}
+                </Text>
               )}
             </TouchableOpacity>
-            <View className="flex-row items-center gap-10 p-2 justify-center">
-              <TouchableOpacity style={styles.container} onPress={likeComment}>
-                <AntDesign
-                  name="heart"
-                  size={18}
-                  color={hasLiked ? "red" : theme.colors.text}
-                />
-                {likes.length > 0 && (
-                  <Text
-                    style={{
-                      position: "absolute",
-                      right: -5,
-                      fontSize: 14,
-                      color: theme.colors.text,
-                    }}
-                  >
-                    {likes.length}
-                  </Text>
-                )}
-              </TouchableOpacity>
+          </View>
 
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("ReciteScreen", {
-                    postId: item.id,
-                    post: item,
-                  })
-                }
+          {/* Media Display */}
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("FullMedia", {
+                media: item?.media ? [item.media] : [], // ✅ always an array
+                text: item.comment,
+              })
+            }
+          >
+            {item?.media?.url && (
+              <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 4,
+                  width: "100%",
+                  height: 200,
+                  borderRadius: 8,
+                  overflow: "hidden",
                 }}
               >
-                <MaterialCommunityIcons
-                  name="repeat"
-                  size={18}
-                  color={theme.colors.text}
-                />
-              </TouchableOpacity>
-
-              {/* Recite button */}
-            </View>
-          </>
-        )}
-      </View>
-    </>
+                {item?.media?.type === "image" ? (
+                  <FastImage
+                    source={{ uri: item.media?.url }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <>
+                    <Video
+                      source={{ uri: item.media?.url }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                      muted
+                      repeat
+                      paused={false}
+                    />
+                    <Ionicons
+                      name="play-circle-outline"
+                      size={64}
+                      color="white"
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: [{ translateX: -32 }, { translateY: -32 }],
+                        zIndex: 10,
+                      }}
+                    />
+                  </>
+                )}
+              </View>
+            )}
+          </TouchableOpacity>
+          {/* Like Button Row */}
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
+  likeButton: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: "auto",
+    padding: 6,
+    width: 50,
+    height: 30,
   },
-  burstHeart: {
-    position: "absolute",
+  likeCount: {
+    marginLeft: 4,
+    fontSize: 14,
   },
 });

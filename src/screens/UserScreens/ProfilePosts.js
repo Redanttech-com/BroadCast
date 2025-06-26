@@ -1,76 +1,72 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
-  Image,
-  Dimensions,
+  Text,
   TouchableOpacity,
-  Modal,
-  Pressable,
+  Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLevel } from "../../context/LevelContext";
 import { useUser } from "@clerk/clerk-expo";
-import { listenToProfile } from "../../services/firestore";
-import { Video } from "expo-av";
-import { useTheme } from "../../context/ThemeContext";
 import { db } from "../../services/firebase";
 import {
   collection,
   onSnapshot,
-  or,
   orderBy,
   query,
   where,
 } from "firebase/firestore";
-import { useRoute } from "@react-navigation/native";
+import { useTheme } from "../../context/ThemeContext";
 import FastImage from "@d11/react-native-fast-image";
+import { Video } from "expo-av";
 
 const screenWidth = Dimensions.get("window").width;
 const isSmallScreen = screenWidth < 360;
-const numColumns = isSmallScreen ? 3 : 4;
+const numColumns = isSmallScreen ? 2 : 3;
 const itemSize = (screenWidth - 4 * (numColumns + 1)) / numColumns;
-const borderRadius = 8;
 
 export default function ProfilePosts() {
-  const route = useRoute();
-  const  uid  = route.params;
-  
   const { currentLevel } = useLevel();
   const { user } = useUser();
-  const [posts, setPosts] = useState([]);
-  const [selectedItem, setSelectedItem] = useState(null);
   const { theme } = useTheme();
+  const navigation = useNavigation();
+
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const route = useRoute();
+  const { uid } = route.params || {};
 
   useEffect(() => {
-    if (!uid || !currentLevel?.type || !currentLevel?.value) return;
-
-    console.log("Fetching posts for user ID:", uid);
+    if (!currentLevel?.type || !currentLevel?.value) return;
 
     const q = query(
       collection(db, currentLevel.type, currentLevel.value, "posts"),
-      // where("uid", "==", uid)
+      where("uid", "==", uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const formattedPosts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setPosts(formattedPosts);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const filteredPosts = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((post) => !!post.media);
+        setPosts(filteredPosts);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching posts:", err);
+        setLoading(false);
+      }
+    );
 
-    console.log("Listening to posts:", posts);
-    
-
-    return unsubscribe;
-  }, [uid, currentLevel]);
-  
+    return () => unsubscribe();
+  }, [currentLevel?.type, currentLevel?.value]);
 
   const renderMediaItem = (item) => {
-    const isVideo = !!item.videos;
-    const mediaUri = isVideo ? item.videos : item.images;
-
-    if (!mediaUri) return null;
+    const isVideo = item.media[0]?.type === "video";
+    const mediaUrl = item.media[0]?.url;
 
     return (
       <TouchableOpacity
@@ -79,84 +75,80 @@ export default function ProfilePosts() {
           width: itemSize,
           height: itemSize,
           margin: 2,
-          borderRadius,
+          borderRadius: 8,
           overflow: "hidden",
           backgroundColor: "#ddd",
         }}
-        onPress={() => setSelectedItem(item)}
+        onPress={() =>
+          navigation.navigate("FullMedia", {
+            media: item.media,
+            postId: item.id,
+          })
+        }
       >
         {isVideo ? (
           <Video
-            source={{ uri: mediaUri }}
-            style={{ width: "100%", height: "100%" }}
+            source={{ uri: mediaUrl }}
             resizeMode="cover"
+            shouldPlay={false}
             isMuted
+            style={{ width: "100%", height: "100%" }}
           />
         ) : (
           <FastImage
-            source={{ uri: mediaUri }}
+            source={{ uri: mediaUrl }}
             style={{ width: "100%", height: "100%" }}
             resizeMode="cover"
           />
         )}
+
+        <Text
+          style={{
+            position: "absolute",
+            bottom: 2,
+            left: 2,
+            color: "#fff",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            paddingHorizontal: 6,
+            borderRadius: 4,
+            fontWeight: "bold",
+            fontSize: 10,
+          }}
+        >
+          @{item.nickname}
+        </Text>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {posts.length === 0 ? (
-        <></> // Optional: Add loading or "no media" message here
+      {loading && posts.length === 0 ? (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="small" color={theme.colors.text} />
+        </View>
+      ) : posts.length === 0 ? (
+        <Text
+          style={{
+            textAlign: "center",
+            color: theme.colors.text,
+            marginTop: 20,
+            fontSize: 14,
+          }}
+        >
+          No media found.
+        </Text>
       ) : (
         <FlashList
-          data={posts.filter((item) => item.images || item.videos)}
+          data={posts}
           keyExtractor={(item) => item.id}
           estimatedItemSize={150}
-          extraData={theme}
           numColumns={numColumns}
           contentContainerStyle={{ padding: 2 }}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
           renderItem={({ item }) => renderMediaItem(item)}
         />
-      )}
-
-      {/* Fullscreen Preview Modal */}
-      {selectedItem && (
-        <Modal visible transparent animationType="fade">
-          <Pressable
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.9)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-            onPress={() => setSelectedItem(null)}
-          >
-            {selectedItem.images ? (
-              <FastImage
-                source={{ uri: selectedItem.images }}
-                style={{
-                  width: "90%",
-                  height: "70%",
-                  borderRadius,
-                  resizeMode: "contain",
-                }}
-              />
-            ) : selectedItem.videos ? (
-              <Video
-                source={{ uri: selectedItem.videos }}
-                shouldPlay
-                isMuted
-                style={{
-                  width: "90%",
-                  height: "70%",
-                  borderRadius,
-                }}
-                resizeMode="contain"
-              />
-            ) : null}
-          </Pressable>
-        </Modal>
       )}
     </View>
   );

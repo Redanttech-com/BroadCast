@@ -8,6 +8,8 @@ import {
   Pressable,
   TextInput,
   Image,
+  StyleSheet,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -17,6 +19,7 @@ import {
   collection,
   doc,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -32,6 +35,7 @@ import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import FastImage from "@d11/react-native-fast-image";
+import Video from "react-native-video";
 
 export default function CommentScreen() {
   const { theme } = useTheme();
@@ -48,8 +52,12 @@ export default function CommentScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    if (!postId) return; // Ensure postId is available
-    const q = query(collection(db, "comments", postId, "comments"));
+    if (!postId) return;
+
+    const q = query(
+      collection(db, "comments", postId, "comments"),
+      orderBy("timestamp", "desc") // 👈 Correct usage here
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const formattedPosts = snapshot.docs.map((doc) => ({
@@ -66,23 +74,24 @@ export default function CommentScreen() {
     let result;
 
     if (source === "camera") {
-      result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images & videos
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['image', 'video'],
         allowsEditing: true,
+        aspect: [4, 3],
         quality: 1,
-        allowsMultipleSelection: true,
       });
     } else {
       result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ["images", "videos"],
         allowsEditing: true,
+        aspect: [4, 3],
         quality: 1,
       });
     }
 
     if (!result.canceled) {
       const pickedType =
-        result.assets[0].type === "video" ? "Videos" : "Images";
+        result.assets[0].type === "video" ? "video" : "image";
       setMedia({ uri: result.assets[0].uri, type: pickedType });
 
       // Save media to storage
@@ -105,31 +114,24 @@ export default function CommentScreen() {
   };
 
   const uploadMedia = async (docRefId, collectionName = "comments") => {
-    if (!media?.uri || !media?.type) {
-      console.error("No media URI or type found", media); // Debugging log
-      return null; // Prevent upload if no media is selected
-    }
+    if (!media || !media.uri) return null;
 
     try {
       const blob = await (await fetch(media.uri)).blob();
-      //  console.log("Blob created:", blob);
+      const fileName = media.uri.split("/").pop();
 
-      // Example storage path: "county/abc123/Images" or "market/abc123/Videos"
-      const mediaRef = ref(
-        storage,
-        `BroadCastImages/${docRefId}/${media.type}`
-      );
-      // console.log("Uploading to:", mediaRef.fullPath);
+      const mediaRef = ref(storage, `commentImages/${docRefId}/${fileName}`);
 
       await uploadBytes(mediaRef, blob);
       const downloadUrl = await getDownloadURL(mediaRef);
-      //  console.log("Download URL:", downloadUrl);
 
-      // Firestore document path
+      // Save as single media object
       const docRef = doc(db, collectionName, postId, collectionName, docRefId);
-
       await updateDoc(docRef, {
-        [media?.type.toLowerCase()]: downloadUrl, // Store media URL in the correct field
+        media: {
+          type: media.type.toLowerCase(),
+          url: downloadUrl,
+        },
       });
 
       return downloadUrl;
@@ -138,13 +140,14 @@ export default function CommentScreen() {
       return null;
     }
   };
+  
 
   const sendPost = async () => {
     setLoadingComments(true);
-    if (!input.trim()) {
-      Alert.alert("Error", "Post content cannot be empty.");
-      return;
-    }
+    // if (!input.trim()) {
+    //   Alert.alert("Error", "Post content cannot be empty.");
+    //   return;
+    // }
 
     // Ensure user and userData exist
     if (!user || !userDetails) {
@@ -189,7 +192,7 @@ export default function CommentScreen() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
-      edges={["bottom","left","right"]}
+      edges={["bottom", "left", "right"]}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -256,49 +259,119 @@ export default function CommentScreen() {
         {/* Comment Input */}
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
             borderTopWidth: 1,
             borderColor: "#ccc",
             paddingHorizontal: 12,
             paddingVertical: 8,
-            backgroundColor: theme.colors.background,            
+            backgroundColor: theme.colors.background,
           }}
         >
-          <Pressable
-            onPress={() => pickMedia("camera")}
-            style={{ marginRight: 10 }}
-          >
-            <Feather name="camera" size={24} color={theme.colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={() => pickMedia("gallery")}
-            style={{ marginRight: 10 }}
-          >
-            <Feather name="image" size={24} color={theme.colors.text} />
-          </Pressable>
-          <TextInput
-            placeholder="Add a comment..."
-            placeholderTextColor={theme.colors.text}
-            value={input}
-            onChangeText={setInput}
-            style={{
-              flex: 1,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              height: 40,
-              color: theme.colors.text,
-            }}
-          />
-          <Pressable onPress={sendPost} style={{ marginLeft: 10 }}>
-            {loadingComments ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <Feather name="send" size={24} color="#007AFF" />
-            )}
-          </Pressable>
+          <View>
+            {/* Icons + Media Preview */}
+            <View className="flex-row items-center">
+              <View className="flex-row gap-2">
+                 <Pressable
+                onPress={() => pickMedia("camera")}
+                style={{ marginBottom: 8 }}
+              >
+                <Feather name="camera" size={24} color={theme.colors.text} />
+              </Pressable>
+              <Pressable onPress={() => pickMedia("gallery")}>
+                <Feather name="image" size={24} color={theme.colors.text} />
+              </Pressable>
+              </View>
+             
+
+
+            {/* Input and Send */}
+            <View
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            >
+              <TextInput
+                placeholder="Add a comment..."
+                placeholderTextColor={theme.colors.text}
+                value={input}
+                onChangeText={setInput}
+                style={{
+                  flex: 1,
+                  paddingHorizontal: 12,
+                  borderRadius: 20,
+                  height: 40,
+                  color: theme.colors.text,
+                }}
+              />
+              <Pressable onPress={sendPost} style={{ marginLeft: 10 }}>
+                {loadingComments ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <Feather name="send" size={24} color="#007AFF" />
+                )}
+              </Pressable>
+            </View>
+            </View>
+              {media.uri && (
+                <View style={[styles.mediaPreview, { marginTop: 8 }]}>
+                  {media.type === "Videos" ? (
+                    <Video
+                      source={{ uri: media.uri }}
+                      style={styles.singleMedia}
+                      resizeMode="cover"
+                      muted
+                      repeat
+                      paused={false}
+                      controls
+                    />
+                  ) : (
+                    <FastImage
+                      source={{ uri: media.uri }}
+                      style={styles.singleMedia}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <Pressable
+                    style={styles.removeMedia}
+                    onPress={() => setMedia({ uri: null, type: null })}
+                  >
+                    <Ionicons name="close" size={16} color="#fff" />
+                  </Pressable>
+                </View>
+              )}
+          
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  mediaPreview: {
+    marginTop: 16,
+    position: "relative",
+    alignItems: "center",
+  },
+  media: {
+    width: "100%",
+    height: 450,
+    borderRadius: 10,
+  },
+  removeMedia: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#0008",
+    padding: 6,
+    borderRadius: 20,
+  },
+  mediaPreviewContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  },
+  singleMedia: {
+    width: "60%",
+    aspectRatio: 1, // or 16 / 9 if you prefer wide
+    borderRadius: 8,
+  },
+});

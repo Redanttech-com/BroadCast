@@ -19,7 +19,9 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 
 const screenWidth = Dimensions.get("window").width;
-const itemSize = screenWidth / 3 - 4;
+const isSmallScreen = screenWidth < 360;
+const numColumns = isSmallScreen ? 2 : 3;
+const itemSize = (screenWidth - 4 * (numColumns + 1)) / numColumns;
 
 export default function MediaScreen() {
   const [posts, setPosts] = useState([]);
@@ -28,6 +30,7 @@ export default function MediaScreen() {
   const { currentLevel } = useLevel();
   const { theme } = useTheme();
   const navigation = useNavigation();
+
   useEffect(() => {
     if (!currentLevel?.type || !currentLevel?.value) return;
 

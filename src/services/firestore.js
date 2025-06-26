@@ -159,7 +159,7 @@ export const listenToStatus = (setPosts, setLoadingStatus) => {
   const q = query(collection(db, "status"), orderBy("timestamp", "desc"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const latestStatuses = new Map();
+    const validStatuses = [];
 
     snapshot.docs.forEach((doc) => {
       const post = { id: doc.id, ...doc.data() };
@@ -174,17 +174,16 @@ export const listenToStatus = (setPosts, setLoadingStatus) => {
         }
       }
 
-      if (!latestStatuses.has(post.uid)) {
-        latestStatuses.set(post.uid, post);
-      }
+      validStatuses.push(post);
     });
 
-    setPosts(Array.from(latestStatuses.values()));
+    setPosts(validStatuses); // ✅ set all valid statuses
     setLoadingStatus(false);
   });
 
-  return () => unsubscribe();
+  return unsubscribe;
 };
+
 
 export const deletePostAfter24Hours = async (postId) => {
   try {

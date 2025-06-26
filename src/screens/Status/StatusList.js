@@ -1,3 +1,4 @@
+// StatusList.js
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -11,54 +12,74 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { listenToStatus } from "../../services/firestore";
 import { useUser } from "@clerk/clerk-expo";
 import { ResizeMode, Video } from "expo-av";
 import { useTheme } from "../../context/ThemeContext";
+import { db } from "../../services/firebase";
+import {
+  collection,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
+import SegmentedRing from "../../components/Status/SegmentedRing";
+import { useSeenStatus } from "../../context/SeenStatusContext";
 
 export default function StatusList() {
   const navigation = useNavigation();
   const { user } = useUser();
-  const [statuses, setStatuses] = useState([]);
+  const { theme } = useTheme();
+  const [statusGroups, setStatusGroups] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { theme } = useTheme(); // Assuming you have a theme context
+  const { seenMap } = useSeenStatus();
 
   useEffect(() => {
-    const unsubscribe = listenToStatus(setStatuses, setLoading);
+    if (!user?.id) return;
+
+    setLoading(true);
+    const q = query(collection(db, "status"), orderBy("timestamp", "asc"));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      const grouped = {};
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const timestamp = data?.timestamp?.toMillis?.();
+
+        if (!timestamp) continue;
+
+        if (now - timestamp >= oneDay) {
+          await deleteDoc(doc.ref);
+          continue;
+        }
+
+        if (!grouped[data.uid]) grouped[data.uid] = [];
+
+        grouped[data.uid].push({ id: doc.id, ...data });
+      }
+
+      const groupedArray = Object.entries(grouped).map(([uid, items]) => ({
+        uid,
+        name: items[0]?.name || "",
+        nickname: items[0]?.nickname || "",
+        items: items.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds),
+      }));
+
+      setStatusGroups(groupedArray);
+      setLoading(false);
+    });
+
     return () => unsubscribe();
-  }, []);
+  }, [user?.id]);
 
-  const dataWithAdd = [{ id: "add", type: "add" }, ...statuses];
-  const totalStatuses = statuses.length;
-
-  const handlePress = (status) => {
-    navigation.navigate("StatusViewScreen", { status });
+  const handlePress = (statusGroup) => {
+    navigation.navigate("StatusViewScreen", { statusGroup });
   };
 
-  const borderColorAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(borderColorAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: false,
-        }),
-        Animated.timing(borderColorAnim, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  const borderColor = borderColorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["#3b82f6", "#bd124e"],
-  });
+  const dataWithAdd = [{ id: "add", type: "add" }, ...statusGroups];
 
   return (
     <View style={{ paddingVertical: 10 }}>
@@ -72,24 +93,15 @@ export default function StatusList() {
         <FlatList
           horizontal
           data={dataWithAdd}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id || item.uid}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 5 }}
-          ListEmptyComponent={
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <Text>No statuses available</Text>
-            </View>
-          }
           renderItem={({ item }) => {
             if (item.type === "add") {
               return (
                 <TouchableOpacity
                   onPress={() => navigation.navigate("StatusInput")}
-                  style={{
-                    marginRight: 5,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  style={{ marginRight: 5, alignItems: "center" }}
                 >
                   <View
                     style={{
@@ -106,77 +118,81 @@ export default function StatusList() {
                     <Ionicons name="add" size={28} color="#15014f" />
                   </View>
                   <Text
-                    style={{
-                      fontSize: 12,
-                      marginTop: 4,
-                      textAlign: "center",
-                    }}
+                    style={{ fontSize: 12, marginTop: 4 }}
                     numberOfLines={1}
-                    ellipsizeMode="tail"
                     width={60}
                   ></Text>
                 </TouchableOpacity>
               );
             }
 
-            const hasImageOrVideo = item?.videos || item?.images;
-            const showInput = !hasImageOrVideo && item?.text;
+            const first = item.items[0];
+            const seenArray = item.items.map((statusItem) =>
+              seenMap[item.uid]?.includes(statusItem.id)
+            );
 
             return (
               <TouchableOpacity
                 onPress={() => handlePress(item)}
                 style={{ marginRight: 5, alignItems: "center" }}
               >
-                <Animated.View
-                  style={{
-                    borderWidth: 3,
-                    borderColor,
-                    borderRadius: 50,
-                    width: 60,
-                    height: 60,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                >
-                  {item?.videos ? (
-                    <Video
-                      source={{ uri: item?.videos }}
-                      style={{ width: 50, height: 50, borderRadius: 100 }}
-                      useNativeControls
-                      resizeMode="cover"
-                    />
-                  ) : item?.images ? (
-                    <Image
-                      source={{ uri: item?.images }}
-                      style={{ width: 50, height: 50, borderRadius: 100 }}
-                      resizeMode={ResizeMode.COVER}
-                    />
-                  ) : showInput ? (
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        color: "gray",
-                        fontSize: 5,
-                        fontWeight: "bold",
-                      }}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {item?.text}
-                    </Text>
-                  ) : null}
-                </Animated.View>
+                <View style={{ width: 60, height: 60 }}>
+                  <SegmentedRing
+                    seenArray={seenArray}
+                    size={60}
+                    strokeWidth={3}
+                  />
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 5,
+                      left: 5,
+                      width: 50,
+                      height: 50,
+                      borderRadius: 25,
+                      overflow: "hidden",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    {first.videos ? (
+                      <Video
+                        source={{ uri: first.videos }}
+                        style={{ width: 50, height: 50, borderRadius: 100 }}
+                        resizeMode="cover"
+                        isLooping
+                        isMuted
+                        shouldPlay
+                      />
+                    ) : first.images ? (
+                      <Image
+                        source={{ uri: first.images }}
+                        style={{ width: 50, height: 50, borderRadius: 100 }}
+                        resizeMode={ResizeMode.COVER}
+                      />
+                    ) : (
+                      <Text
+                        style={{
+                          textAlign: "center",
+                          color: "gray",
+                          fontSize: 6,
+                          fontWeight: "bold",
+                        }}
+                        numberOfLines={2}
+                      >
+                        {first.text}
+                      </Text>
+                    )}
+                  </View>
+                </View>
                 <Text
                   style={{
                     fontSize: 12,
                     marginTop: 4,
-                    justifyContent: "center",
                     textAlign: "center",
-                    color: theme.colors.text, // Use theme color for text
+                    color: theme.colors.text,
                   }}
                   numberOfLines={1}
-                  ellipsizeMode="tail"
                   width={60}
                 >
                   {item.name || item.nickname}

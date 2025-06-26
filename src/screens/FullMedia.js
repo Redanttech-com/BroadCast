@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Image,
@@ -12,16 +12,23 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Video from "react-native-video";
 import { useRoute } from "@react-navigation/native";
+import { useLevel } from "../context/LevelContext";
+import { db } from "../services/firebase";
+import { collection, doc, getCountFromServer, getDoc, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { useUser } from "@clerk/clerk-expo";
 
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
 const FullMedia = ({ navigation }) => {
   const route = useRoute();
-  const { media = [], text } = route.params;
+  const { media = [], text, postId } = route.params;
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
+  const { currentLevel } = useLevel();
+  const { user } = useUser();
 
+  
 
   const handleThumbnailPress = (index) => {
     setCurrentIndex(index);
@@ -37,6 +44,50 @@ const FullMedia = ({ navigation }) => {
   const viewabilityConfig = {
     itemVisiblePercentThreshold: 50,
   };
+
+  // Cleanup subscription
+  useEffect(() => {
+    if (!postId || !user?.id || !currentLevel?.type || !currentLevel?.value)
+      return;
+
+    const fetchPost = async () => {
+      try {
+        const postRef = doc(
+          db,
+          currentLevel.type,
+          currentLevel.value,
+          "posts",
+          postId
+        );
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) {
+          return;
+        }
+
+        const viewRef = doc(postRef, "views", user.id);
+        const viewSnap = await getDoc(viewRef);
+
+        if (!viewSnap.exists()) {
+          await setDoc(viewRef, {
+            userId: user.id,
+            timestamp: Timestamp.now(),
+          });
+
+          const viewsCollection = collection(postRef, "views");
+          const snapshot = await getCountFromServer(viewsCollection);
+          const count = snapshot.data().count;
+
+          await updateDoc(postRef, {
+            viewCount: count,
+          });
+        }
+      } catch (error) {
+        console.error("Error tracking post view:", error);
+      }
+    };
+
+    fetchPost();
+  }, [postId, user?.id, currentLevel]);
 
   const renderMediaItem = ({ item }) => {
     if (!item?.url || !item?.type) return null;
@@ -151,7 +202,7 @@ const styles = StyleSheet.create({
   },
   textOverlay: {
     position: "absolute",
-    bottom: 110,
+    bottom: 200,
     left: 10,
     right: 10,
     maxHeight: "30%",

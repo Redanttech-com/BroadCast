@@ -14,7 +14,6 @@ export default function UserScreenTabs() {
   const {uid} = route.params; // Get the user ID from route params
   const { theme } = useTheme();
 
-  console.log("UserScreenTabs - User ID:", uid);
   
   return (
       <Tab.Navigator

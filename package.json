@@ -30,7 +30,9 @@
     "expo-auth-session": "~6.2.0",
     "expo-av": "~15.1.6",
     "expo-blur": "~14.1.5",
+    "expo-file-system": "~18.1.10",
     "expo-image-picker": "^16.1.4",
+    "expo-media-library": "~17.1.7",
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",
@@ -66,7 +68,8 @@
     "react-native-video-player": "^0.16.3",
     "react-native-web": "^0.20.0",
     "recoil": "^0.7.7",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
