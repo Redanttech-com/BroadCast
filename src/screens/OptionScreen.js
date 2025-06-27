@@ -10,16 +10,6 @@ import {
 } from "react-native";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
 import { db, storage } from "../services/firebase";
 import { useLevel } from "../context/LevelContext";
 import { useUser } from "@clerk/clerk-expo";
@@ -28,9 +18,19 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { deleteObject, ref } from "firebase/storage";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { useFollow } from "../context/FollowContext";
 
 const OptionScreen = ({ route }) => {
-  const { pstId, post, postId, userId, commentUid, commentId } = route.params || {};
+  const { pstId, post, postId, userId, commentUid, commentId } =
+    route.params || {};
   const [isBookmarked, setIsBookmarked] = useState({});
   const [isReported, setIsReported] = useState({});
   const [isBookMarkVisible, setIsBookMarkVisible] = useState(false);
@@ -42,6 +42,7 @@ const OptionScreen = ({ route }) => {
   const reasons = ["Spam", "Inappropriate Content", "Hate Speech", "Other"];
   const navigation = useNavigation();
   const { theme } = useTheme(); // Assuming you have a theme context
+  const { hasFollowed, followMember, followloading } = useFollow();
 
   const checkBookmark = async () => {
     if (!userId || !pstId) return;
@@ -171,7 +172,6 @@ const OptionScreen = ({ route }) => {
     }
   };
 
-
   const deleteComment = async (postId, commentId) => {
     if (!postId || !commentId) {
       console.log("❌ Missing postId or commentId", { postId, commentId });
@@ -196,36 +196,35 @@ const OptionScreen = ({ route }) => {
         ? [data.media]
         : [];
 
-        for (const media of mediaItems) {
-          const mediaUrl = media?.url;
+      for (const media of mediaItems) {
+        const mediaUrl = media?.url;
 
-          if (typeof mediaUrl === "string" && mediaUrl.includes("/o/")) {
-            const pathStartIndex = mediaUrl.indexOf("/o/") + 3;
-            const pathEndIndex = mediaUrl.indexOf("?");
-            const fullPathEncoded = mediaUrl.substring(
-              pathStartIndex,
-              pathEndIndex
-            );
-            const fullPath = decodeURIComponent(fullPathEncoded);
-            const mediaRef = ref(storage, fullPath);
+        if (typeof mediaUrl === "string" && mediaUrl.includes("/o/")) {
+          const pathStartIndex = mediaUrl.indexOf("/o/") + 3;
+          const pathEndIndex = mediaUrl.indexOf("?");
+          const fullPathEncoded = mediaUrl.substring(
+            pathStartIndex,
+            pathEndIndex
+          );
+          const fullPath = decodeURIComponent(fullPathEncoded);
+          const mediaRef = ref(storage, fullPath);
 
-            try {
-              await deleteObject(mediaRef);
-              console.log("✅ Deleted media:", fullPath);
-            } catch (err) {
-              console.error("⚠️ Error deleting media:", err);
-            }
-          } else {
-            console.warn("⚠️ Skipping invalid or missing media URL:", mediaUrl);
+          try {
+            await deleteObject(mediaRef);
+            console.log("✅ Deleted media:", fullPath);
+          } catch (err) {
+            console.error("⚠️ Error deleting media:", err);
           }
+        } else {
+          console.warn("⚠️ Skipping invalid or missing media URL:", mediaUrl);
         }
-        
+      }
 
       // ✅ Delete all likes under the comment
       const likesSnapshot = await getDocs(
         collection(db, "comments", commentId, "likes")
       );
-      
+
       const likeDeletions = likesSnapshot.docs.map((docSnap) =>
         deleteDoc(docSnap.ref)
       );
@@ -241,7 +240,6 @@ const OptionScreen = ({ route }) => {
       console.error("❌ Error deleting comment:", error);
     }
   };
-  
 
   useEffect(() => {
     checkBookmark();
@@ -249,7 +247,7 @@ const OptionScreen = ({ route }) => {
   }, [pstId, userId]);
 
   const handleDelete = async () => {
-    if(!pstId || !currentLevel) {
+    if (!pstId || !currentLevel) {
       console.log("missing documents");
       return;
     }
@@ -319,7 +317,6 @@ const OptionScreen = ({ route }) => {
       setDeleteModalVisible(false);
     }
   };
-  
 
   const OptionButton = ({
     icon,
@@ -453,6 +450,33 @@ const OptionScreen = ({ route }) => {
                   textColor="orange"
                 />
               </>
+            )}
+
+            {userId !== user.id && (
+              <TouchableOpacity
+                onPress={() => followMember(userId)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <MaterialIcons name="person" size={24} color="orange" />
+                <Text
+                  style={{
+                    marginLeft: 8,
+                    color: "orange",
+                    fontSize: 16,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {hasFollowed[userId]
+                    ? `- Unfollow @${post.nickname}`
+                    : `+ Follow @${post.nickname}`}
+                </Text>
+              </TouchableOpacity>
             )}
 
             {/* Bookmark Modal */}

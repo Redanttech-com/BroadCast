@@ -6,6 +6,7 @@ import ProfileTabs from "./ProfileTabs"; // Import the top tabs
 import {
   collection,
   getDocs,
+  onSnapshot,
   query,
   updateDoc,
   where,
@@ -22,11 +23,14 @@ export default function ProfileScreen() {
   const [userData, setUserData] = useState(null);
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const { followingCount, followersCount } = useFollow();
   const route = useRoute();
   const [selectedFile, setSelectedFile] = useState(null);
   const [userImg, setUserImg] = useState(null);
   const { uid, media } = route.params;
+  // const [followersUsers, setFollowersUsers] = useState([]);
+  
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -43,6 +47,32 @@ export default function ProfileScreen() {
     };
     fetchUserData();
   }, [uid]);
+
+   useEffect(() => {
+      if (!uid) return;
+  
+      const followersQuery = query(
+        collection(db, "following"),
+        where("followingId", "==", uid)
+      );
+      const unsubscribeFollowers = onSnapshot(followersQuery, (snapshot) => {
+        setFollowersCount(snapshot.size);
+      });
+  
+      const followingQuery = query(
+        collection(db, "following"),
+        where("followerId", "==", uid)
+      );
+      const unsubscribeFollowing = onSnapshot(followingQuery, (snapshot) => {
+        setFollowingCount(snapshot.size);
+      });
+  
+      return () => {
+        unsubscribeFollowers();
+        unsubscribeFollowing();
+      };
+    }, [uid]);
+    
 
   const sendUserImg = async () => {
     if (!uid) return;
@@ -152,7 +182,7 @@ export default function ProfileScreen() {
           <View className="flex-row justify-evenly mt-2 gap-4">
             <Pressable
               onPress={() =>
-                navigation.navigate("FollowScreen", { tab: "followers" })
+                navigation.navigate("UserFollowScreen", { tab: "followers", uid: uid })
               }
               className="items-center flex-row gap-2"
             >
@@ -173,7 +203,7 @@ export default function ProfileScreen() {
             <Pressable
               className="items-center flex-row gap-2"
               onPress={() =>
-                navigation.navigate("FollowScreen", { tab: "following" })
+                navigation.navigate("UserFollowScreen", { tab: "following", uid:uid })
               }
             >
               <Text

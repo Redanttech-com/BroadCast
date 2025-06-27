@@ -184,7 +184,7 @@ export default function RenderPostItem({ item, id }) {
             justifyContent: "center",
             alignItems: "center",
             borderRadius: 10,
-            backgroundColor: "rgba(0,0,0,0.8)",
+            backgroundColor: "rgba(0,0,0,0.9)",
             zIndex: 50,
           }}
         >

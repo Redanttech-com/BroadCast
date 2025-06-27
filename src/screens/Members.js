@@ -73,7 +73,7 @@ export default function MembersListScreen() {
           <View className="mb-4 flex-row items-center gap-3 px-4 py-2">
             <View className="flex-1 flex-row items-center gap-3">
               <Image
-                source={{ uri: item.imageUrl || item.profileImage }}
+                source={{ uri: item.imageUrl || item.userImg }}
                 className="h-10 w-10 rounded-md"
               />
               <View className="max-w-[180px]">

@@ -23,16 +23,16 @@ import { db } from "../../services/firebase";
 
 export default function FollowingScreen() {
   const { theme } = useTheme();
-  const { hasFollowed, followMember, followloading, userDetails } = useFollow();
+  const { hasFollowed, followMember, followloading } = useFollow();
   const { user } = useUser();
   const [displayUsers, setDisplayUsers] = useState([]);
 
   useEffect(() => {
-    if (!userDetails?.uid) return;
+    if (!user?.id) return;
 
     const q = query(
       collection(db, "following"),
-      where("followerId", "==", userDetails.uid)
+      where("followerId", "==", user.id)
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -50,7 +50,12 @@ export default function FollowingScreen() {
     });
 
     return () => unsubscribe();
-  }, [userDetails?.uid]);
+  }, [user?.id]);
+
+  const sortedMembers = [...displayUsers].sort((a, b) =>
+    a.uid === user?.id ? -1 : b.uid === user?.id ? 1 : 0
+  );
+
 
   const renderItem = ({ item }) => (
     <View
@@ -63,7 +68,7 @@ export default function FollowingScreen() {
     >
       <View className="flex-1 flex-row items-center gap-3">
         <Image
-          source={{ uri: item.imageUrl || item.profileImage }}
+          source={{ uri: item.imageUrl || item.userImg }}
           className="h-10 w-10 rounded-md"
         />
         <View className="max-w-[180px]">
@@ -84,7 +89,14 @@ export default function FollowingScreen() {
         </View>
       </View>
 
-      {item.uid !== userDetails?.uid && (
+      {item.uid === user?.id ? (
+        <Text
+          className="text-lg font-semibold"
+          style={{ color: theme.colors.text }}
+        >
+          You
+        </Text>
+      ) : (
         <TouchableOpacity
           onPress={() => followMember(item.uid)}
           style={{
@@ -94,6 +106,7 @@ export default function FollowingScreen() {
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 20,
+            minWidth: 80,
           }}
         >
           {followloading[item.uid] ? (
@@ -101,6 +114,7 @@ export default function FollowingScreen() {
           ) : (
             <Text
               style={{
+                textAlign: "center",
                 color: hasFollowed[item.uid]
                   ? theme.colors.text
                   : theme.colors.background,
@@ -117,7 +131,7 @@ export default function FollowingScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <FlashList
-        data={displayUsers}
+        data={sortedMembers}
         renderItem={renderItem}
         estimatedItemSize={70}
         keyExtractor={(item) => item.uid}

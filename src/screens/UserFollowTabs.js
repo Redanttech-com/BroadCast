@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import ProfileFollowing from "./ProfileScreens/ProfileFollowing";
-import ProfileFollowers from "./ProfileScreens/ProfileFollowers";
 import { useTheme } from "../context/ThemeContext";
 import { useLevel } from "../context/LevelContext";
 import { Text } from "react-native";
@@ -10,21 +8,22 @@ import { db } from "../services/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import { formatCount } from "../utils/format";
 import { useRoute } from "@react-navigation/native";
+import ProfileFollowing from "./UserScreens/ProfileFollowing";
+import ProfileFollowers from "./UserScreens/ProfileFollowers";
 
 const Tab = createMaterialTopTabNavigator();
 
-export default function ProfileFollowTabs({ initialTab = "followers" }) {
+export default function UserFollowTabs({ initialTab = "followers", uid }) {
   const { theme } = useTheme();
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const { user } = useUser();
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!uid) return;
 
     const followersQuery = query(
       collection(db, "following"),
-      where("followingId", "==", user.id)
+      where("followingId", "==", uid)
     );
     const unsubscribeFollowers = onSnapshot(followersQuery, (snapshot) => {
       setFollowersCount(snapshot.size);
@@ -32,7 +31,7 @@ export default function ProfileFollowTabs({ initialTab = "followers" }) {
 
     const followingQuery = query(
       collection(db, "following"),
-      where("followerId", "==", user.id)
+      where("followerId", "==", uid)
     );
     const unsubscribeFollowing = onSnapshot(followingQuery, (snapshot) => {
       setFollowingCount(snapshot.size);
@@ -42,7 +41,7 @@ export default function ProfileFollowTabs({ initialTab = "followers" }) {
       unsubscribeFollowers();
       unsubscribeFollowing();
     };
-  }, [user?.id]);
+  }, [uid]);
 
   return (
     <Tab.Navigator
@@ -57,7 +56,7 @@ export default function ProfileFollowTabs({ initialTab = "followers" }) {
     >
       <Tab.Screen
         name="Following"
-        component={ProfileFollowing}
+        children={() => <ProfileFollowing uid={uid} />}
         options={{
           tabBarLabel: ({ focused, color }) => (
             <Text style={{ color, fontWeight: focused ? "bold" : "normal" }}>
@@ -68,7 +67,7 @@ export default function ProfileFollowTabs({ initialTab = "followers" }) {
       />
       <Tab.Screen
         name="Followers"
-        component={ProfileFollowers}
+        children={() => <ProfileFollowers uid={uid} />}
         options={{
           tabBarLabel: ({ focused, color }) => (
             <Text style={{ color, fontWeight: focused ? "bold" : "normal" }}>

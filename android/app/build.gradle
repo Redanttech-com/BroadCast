@@ -92,8 +92,8 @@ android {
         applicationId 'com.ant_apps.BroadCast'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "2.1.8"
+        versionCode 12
+        versionName "2.1.9"
     }
     signingConfigs {
         debug {

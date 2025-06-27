@@ -1,20 +1,24 @@
-// tokenCache.js
 import * as SecureStore from "expo-secure-store";
 
+/**
+ * Custom token cache for Clerk using Expo SecureStore
+ */
 export const tokenCache = {
-  async getToken(key) {
+  getToken: async (key) => {
     try {
-      return await SecureStore.getItemAsync(key);
-    } catch (err) {
-      console.error("Error getting token from cache", err);
+      const value = await SecureStore.getItemAsync(key);
+      return value;
+    } catch (error) {
+      console.error("Error getting token from SecureStore:", error);
       return null;
     }
   },
-  async saveToken(key, value) {
+
+  saveToken: async (key, value) => {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch (err) {
-      console.error("Error saving token to cache", err);
+    } catch (error) {
+      console.error("Error saving token to SecureStore:", error);
     }
   },
 };

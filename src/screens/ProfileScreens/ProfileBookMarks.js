@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, Text, Image, FlatList } from "react-native";
+import { View, Text, Image, FlatList } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 
 const userBookMark = []; // Replace with actual data

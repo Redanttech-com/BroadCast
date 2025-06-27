@@ -22,34 +22,26 @@ import { db } from "../../services/firebase";
 
 export default function FollowersScreen() {
   const { theme } = useTheme();
-  const {
-    hasFollowed,
-    followMember,
-    followloading,
-    userDetails,
-    followersCount,
-  } = useFollow();
+  const { hasFollowed, followMember, followloading } = useFollow();
   const { user } = useUser();
   const [followersUsers, setFollowersUsers] = useState([]);
-  
+  const [loading, setLoading] = useState(true); // 👈 add loading
 
   useEffect(() => {
-    if (!userDetails?.uid) return;
+    if (!user?.id) return;
 
     const fetchFollowersUsers = async () => {
       try {
-        // Step 1: Query all documents where "followingId" is current user ID
+        setLoading(true); // 👈 start loading
+
         const q = query(
           collection(db, "following"),
-          where("followingId", "==", userDetails.uid)
+          where("followingId", "==", user?.id)
         );
 
         const snapshot = await getDocs(q);
-
-        // Step 2: Get follower IDs from the query result
         const followerIds = snapshot.docs.map((doc) => doc.data().followerId);
 
-        // Step 3: Fetch user profiles for each follower ID
         const userDocs = await Promise.all(
           followerIds.map((id) => getDoc(doc(db, "users", id)))
         );
@@ -61,11 +53,17 @@ export default function FollowersScreen() {
         setFollowersUsers(usersData);
       } catch (error) {
         console.error("Error fetching followers users:", error);
+      } finally {
+        setLoading(false); // 👈 end loading
       }
     };
 
     fetchFollowersUsers();
-  }, [userDetails?.uid]);
+  }, [user?.id]);
+
+  const sortedMembers = [...followersUsers].sort((a, b) =>
+    a.uid === user?.id ? -1 : b.uid === user?.id ? 1 : 0
+  );
 
   const renderItem = ({ item }) => (
     <View
@@ -80,7 +78,7 @@ export default function FollowersScreen() {
     >
       <View className="flex-1 flex-row items-center gap-3">
         <Image
-          source={{ uri: item.imageUrl || item.profileImage }}
+          source={{ uri: item.imageUrl || item.userImg }}
           className="h-10 w-10 rounded-md"
         />
         <View className="max-w-[180px]">
@@ -101,7 +99,14 @@ export default function FollowersScreen() {
         </View>
       </View>
 
-      {item.uid !== userDetails?.uid && (
+      {item.uid === user?.id ? (
+        <Text
+          className="text-lg font-semibold"
+          style={{ color: theme.colors.text }}
+        >
+          You
+        </Text>
+      ) : (
         <TouchableOpacity
           onPress={() => followMember(item.uid)}
           style={{
@@ -111,6 +116,7 @@ export default function FollowersScreen() {
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 20,
+            minWidth: 80,
           }}
         >
           {followloading[item.uid] ? (
@@ -118,6 +124,7 @@ export default function FollowersScreen() {
           ) : (
             <Text
               style={{
+                textAlign: "center",
                 color: hasFollowed[item.uid]
                   ? theme.colors.text
                   : theme.colors.background,
@@ -131,10 +138,22 @@ export default function FollowersScreen() {
     </View>
   );
 
+  // 🔁 Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        <ActivityIndicator size="large" color={theme.colors.text} />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <FlashList
-        data={followersUsers}
+        data={sortedMembers}
         renderItem={renderItem}
         estimatedItemSize={70}
         keyExtractor={(item) => item.uid}
@@ -153,3 +172,4 @@ export default function FollowersScreen() {
     </View>
   );
 }
+

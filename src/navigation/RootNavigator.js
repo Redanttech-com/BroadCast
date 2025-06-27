@@ -23,6 +23,8 @@ import ProductView from "../screens/MarketScreens/ProductView";
 import ChatRoom from "../screens/ChatScreens/ChatRoom";
 import ChatScreen from "../screens/ChatScreens/ChatScreen";
 import MarketScreen from "../screens/MarketScreens/MarketScreen";
+import StatusList from "../screens/Status/StatusList";
+import UserFollowScreen from "../screens/UserFollowScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -80,6 +82,15 @@ const RootNavigator = () => {
             }}
           />
           <Stack.Screen
+            name="UserFollowScreen"
+            component={UserFollowScreen}
+            options={{
+              presentation: "modal",
+              headerShown: false,
+              animation: "slide_from_bottom",
+            }}
+          />
+          <Stack.Screen
             name="ProfileScreen"
             component={ProfileScreen}
             options={{
@@ -109,6 +120,15 @@ const RootNavigator = () => {
           <Stack.Screen
             name="UserScreen"
             component={UserScreen}
+            options={{
+              presentation: "transparentModal",
+              headerShown: false,
+              animation: "slide_from_bottom",
+            }}
+          />
+          <Stack.Screen
+            name="StatusList"
+            component={StatusList}
             options={{
               presentation: "transparentModal",
               headerShown: false,
